@@ -244,7 +244,6 @@ em { font-style: normal; color: var(--y); }
 /* Rodapé */
 .ft { background: var(--y); color: #111; overflow: hidden; padding-bottom: 28px; }
 .ft-giant { display: flex; justify-content: center; font-size: clamp(90px, 27vw, 460px); font-weight: 800; letter-spacing: -.07em; line-height: .78; padding-top: 6vh; overflow: hidden; }
-.ft-giant span { display: inline-block; }
 .ft-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 40px; font-size: 14px; font-weight: 600; }
 .ft-links { display: flex; gap: 24px; flex-wrap: wrap; }
 .ft-links a { border-bottom: 1.5px solid transparent; transition: border-color .3s; }

@@ -59,7 +59,7 @@ const COPY = {
   industria: {
     eyebrow: 'Para a indústria de material de construção',
     l1: 'Sozinha, uma loja compra.', l2: ['Em rede, ela ', 'move o mercado.'],
-    sub: `${STORES} lojas em ${TOTAL_CITIES} cidades e uma única mesa de negociação. Venda para a rede inteira, não loja por loja.`,
+    sub: `${STORES} lojas em ${TOTAL_CITIES} cidades e acesso direto ao dono e ao comprador de cada uma. Venda para a rede inteira, não loja por loja.`,
     cta: [['#industria', 'Ver o que a rede oferece', null], ['#contato', 'Falar com o comercial', 'industria']],
   },
 }

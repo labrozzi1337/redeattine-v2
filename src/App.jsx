@@ -219,7 +219,7 @@ export default function App() {
       gsap.fromTo('.cx-media', { clipPath: 'inset(18% 22% 18% 22% round 24px)' }, { clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'none', scrollTrigger: { trigger: '.conexao', start: 'top bottom', end: 'center center', scrub: true } })
       gsap.fromTo('.cx-big', { xPercent: 10 }, { xPercent: -30, ease: 'none', scrollTrigger: { trigger: '.conexao', start: 'top bottom', end: 'bottom top', scrub: true } })
 
-      gsap.from('.ft-giant span', { yPercent: 100, stagger: 0.05, duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.ft', start: 'top 70%' } })
+      gsap.from('.ft-giant img', { yPercent: 100, duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.ft', start: 'top 70%' } })
     })
 
     // Links internos (e o seletor do header, via data-go). Espera um instante para o
@@ -338,7 +338,7 @@ export default function App() {
             <div className="door-c">
               <p className="eyebrow">Sou indústria</p>
               <h3>Venda para {STORES} lojas com uma negociação.</h3>
-              <ul><li>Tabela única para toda a rede</li><li>Trade marketing executado nas lojas</li><li>Acesso direto ao dono do balcão</li></ul>
+              <ul><li>Política de preços diferenciada para toda a rede</li><li>Acesso direto ao dono e comprador da loja</li></ul>
               <span className="door-go">Ver o que a rede oferece <b>→</b></span>
             </div>
           </a>
@@ -405,7 +405,7 @@ export default function App() {
       </main>
 
       <footer className="ft">
-        <div className="ft-giant" aria-hidden="true">{'ATTINI'.split('').map((c, i) => <span key={i}>{c}</span>)}</div>
+        <div className="ft-giant"><img src="/logo-attini.svg" alt="Rede Attini" /></div>
         <div className="wrap ft-row">
           <p>Construir é tornar real tudo aquilo que é sonho.</p>
           <div className="ft-links">

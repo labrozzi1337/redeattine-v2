@@ -6,6 +6,9 @@ import { REGIONS, TOTAL_CITIES, STORES, AREA } from './data'
 
 const flag = uf => `/flags/${uf}.png`
 const plural = n => `${n} ${n > 1 ? 'cidades' : 'cidade'}`
+// Lojas primeiro, depois cidades (quando a Attini informar as lojas do estado em data.js)
+const count = r => (r.stores ? `${r.stores} ${r.stores > 1 ? 'lojas' : 'loja'} em ` : '') + plural(r.cities.length)
+const allStores = REGIONS.every(r => r.stores)
 
 // Mapa direto: abre com a rede inteira; o visitante escolhe o estado na barra ou clicando no mapa.
 export default function BrazilMap() {
@@ -143,7 +146,7 @@ export default function BrazilMap() {
       el.style.cursor = reg ? 'pointer' : ''
       if (!s) { t.style.opacity = 0; return }
       t.innerHTML = reg
-        ? `<img src="${flag(s.uf)}" alt=""><b>${s.name}</b><span>${plural(reg.cities.length)} · clique para ver</span>`
+        ? `<img src="${flag(s.uf)}" alt=""><b>${s.name}</b><span>${count(reg)} · clique para ver</span>`
         : `<b>${s.name}</b><span>próxima fronteira</span>`
       t.style.opacity = 1
       t.style.transform = `translate(${e.clientX - r.left + 16}px, ${e.clientY - r.top + 16}px)`
@@ -210,7 +213,7 @@ export default function BrazilMap() {
               <span className="map-flag"><img src={flag(r.uf)} alt={`Bandeira: ${r.name}`} /></span>
             </div>
             <h3>{r.name}</h3>
-            <p className="map-count"><strong>{r.cities.length}</strong> {r.cities.length > 1 ? 'cidades' : 'cidade'} com loja Attini</p>
+            <p className="map-count">{r.stores > 0 && <><strong>{r.stores}</strong> {r.stores > 1 ? 'lojas' : 'loja'} em </>}<strong>{r.cities.length}</strong> {r.cities.length > 1 ? 'cidades' : 'cidade'}{!r.stores && ' com loja Attini'}</p>
             <ul className="map-cities" data-lenis-prevent style={{ '--cols': r.cities.length > 30 ? 3 : r.cities.length > 8 ? 2 : 1 }}>
               {r.cities.map((c, k) => <li key={c.n} style={{ '--i': Math.min(k, 40) }}>{c.n}</li>)}
             </ul>
@@ -218,10 +221,10 @@ export default function BrazilMap() {
         ))}
       </div>
       <nav className="map-rail" aria-label="Escolha o estado" ref={rail}>
-        <button className={!reg ? 'on' : ''} aria-pressed={!reg} onClick={() => setSel(null)}>Toda a rede<small>{TOTAL_CITIES}</small></button>
+        <button className={!reg ? 'on' : ''} aria-pressed={!reg} onClick={() => setSel(null)}>Toda a rede<small>{allStores ? `${STORES} lojas` : TOTAL_CITIES}</small></button>
         {REGIONS.map(r => (
-          <button key={r.uf} className={reg === r ? 'on' : ''} aria-pressed={reg === r} onClick={() => setSel(r.uf)} aria-label={`${r.name}, ${plural(r.cities.length)}`}>
-            <img src={flag(r.uf)} alt="" />{r.uf}<small>{r.cities.length}</small>
+          <button key={r.uf} className={reg === r ? 'on' : ''} aria-pressed={reg === r} onClick={() => setSel(r.uf)} aria-label={`${r.name}, ${count(r)}`}>
+            <img src={flag(r.uf)} alt="" />{r.uf}<small>{allStores ? r.stores : r.cities.length}</small>
           </button>
         ))}
       </nav>

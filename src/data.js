@@ -10,9 +10,12 @@ export const SOCIAL = {
 
 // Ordem do tour no mapa: maior presença primeiro.
 export const STATE_NAMES = { GO: 'Goiás', TO: 'Tocantins', PB: 'Paraíba', RN: 'Rio Grande do Norte', MG: 'Minas Gerais', PA: 'Pará', BA: 'Bahia', MA: 'Maranhão', MT: 'Mato Grosso', DF: 'Distrito Federal' }
+// Lojas por estado. PREENCHER com os números da Attini (a soma deve dar STORES), ex.: { GO: 95, TO: 30 }.
+// Estado sem número mostra só as cidades no mapa.
+const STORES_BY_UF = {}
 export const REGIONS = Object.keys(STATE_NAMES).map(uf => {
   const cities = geo.cities.filter(c => c.uf === uf)
-  return { uf, name: STATE_NAMES[uf], cities }
+  return { uf, name: STATE_NAMES[uf], cities, stores: STORES_BY_UF[uf] }
 })
 export const TOTAL_CITIES = geo.cities.length
 export const N_STATES = REGIONS.filter(r => r.uf !== 'DF').length
@@ -38,11 +41,11 @@ export const BRANDS = [
 export const INDUSTRY = [
   {
     n: '01', img: '/img/ai/caminhao.webp', t: 'Uma negociação.\nCentenas de pedidos.',
-    d: 'Sua tabela é negociada uma vez com a rede e chega pronta a cada loja associada. Menos visita, menos custo comercial por ponto de venda, mais giro.',
+    d: 'Uma política de preços diferenciada, negociada com a rede e válida para todas as lojas associadas. Menos visita, menos custo comercial por ponto de venda, mais giro.',
   },
   {
     n: '02', img: '/img/ai/fachada.webp', t: 'O interior que o seu\nrepresentante não alcança.',
-    d: `${STORES} lojas em ${TOTAL_CITIES} cidades, a maioria fora das capitais. Lojas onde quem decide a compra é o dono do balcão, e quem indica a marca é o balconista.`,
+    d: `${STORES} lojas em ${TOTAL_CITIES} cidades, a maioria fora das capitais. Sua equipe fala direto com o dono e o comprador de cada loja, e quem indica a marca é o balconista.`,
   },
   {
     n: '03', img: '/img/ai/gondola.webp', t: 'Trade marketing\ncom execução garantida.',
@@ -59,8 +62,8 @@ export const INDUSTRY = [
 export const TRADE = [
   {
     t: 'Compra conjunta', tag: 'Volume', img: '/img/ai/caminhao.webp',
-    d: 'Sua tabela negociada uma única vez com a Attini e entregue pronta a todas as lojas associadas. O pedido sai consolidado, com volume de rede.',
-    inclui: ['Tabela exclusiva divulgada para toda a rede', 'Pedidos consolidados por campanha ou período', 'Time de compras da Attini acompanhando a negociação', 'Acesso a lojas onde sua equipe de campo não chega'],
+    d: 'Uma política de preços diferenciada, negociada com a Attini e válida para toda a rede. O pedido sai consolidado, com volume de rede.',
+    inclui: ['Política de preços diferenciada para toda a rede', 'Acesso direto ao dono e comprador da loja', 'Pedidos consolidados por campanha ou período', 'Time de compras da Attini acompanhando a negociação', 'Acesso a lojas onde sua equipe de campo não chega'],
     formato: 'Negociação anual ou por campanha', ideal: 'Ganhar cobertura e volume sem aumentar a equipe de vendas',
   },
   {

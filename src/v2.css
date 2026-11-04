@@ -271,3 +271,7 @@ a.story:hover .st-img img { transform: scale(1.05); }
 
 /* Histórias vindas do blog: resumo pode ser longo */
 .story .st-c > p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Rodapé: logo preto (vetor) no lugar das letras soltas */
+.ft-giant { padding-inline: var(--pad); }
+.ft-giant img { width: 100%; max-width: 1600px; height: auto; }
