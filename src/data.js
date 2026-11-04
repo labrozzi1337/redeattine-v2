@@ -1,4 +1,6 @@
 import geo from './geo.json'
+// Lojas associadas, tiradas do mapa do site oficial (WordPress, nov/2026): estado, cidade, nome e endereço.
+import storeList from './stores.json'
 
 export const PHONE = '(63) 3142.2061'
 export const WHATS = '556331422061'
@@ -10,12 +12,11 @@ export const SOCIAL = {
 
 // Ordem do tour no mapa: maior presença primeiro.
 export const STATE_NAMES = { GO: 'Goiás', TO: 'Tocantins', PB: 'Paraíba', RN: 'Rio Grande do Norte', MG: 'Minas Gerais', PA: 'Pará', BA: 'Bahia', MA: 'Maranhão', MT: 'Mato Grosso', DF: 'Distrito Federal' }
-// Lojas por estado. PREENCHER com os números da Attini (a soma deve dar STORES), ex.: { GO: 95, TO: 30 }.
-// Estado sem número mostra só as cidades no mapa.
-const STORES_BY_UF = {}
+// Estado sem lojas cadastradas (hoje, o DF) mostra só as cidades no mapa.
 export const REGIONS = Object.keys(STATE_NAMES).map(uf => {
   const cities = geo.cities.filter(c => c.uf === uf)
-  return { uf, name: STATE_NAMES[uf], cities, stores: STORES_BY_UF[uf] }
+  const shops = storeList.filter(s => s.uf === uf)
+  return { uf, name: STATE_NAMES[uf], cities, shops, stores: shops.length || undefined }
 })
 export const TOTAL_CITIES = geo.cities.length
 export const N_STATES = REGIONS.filter(r => r.uf !== 'DF').length

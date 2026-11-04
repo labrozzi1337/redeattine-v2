@@ -274,3 +274,28 @@ a.story:hover .st-img img { transform: scale(1.05); }
 /* Rodapé: logo preto (vetor) no lugar das letras soltas */
 .ft-giant { padding-inline: var(--pad); }
 .ft-giant img { width: 100%; max-width: 1600px; height: auto; }
+
+/* Mapa: lojas do estado com filtro por cidade (desktop no painel; celular em tela cheia) */
+.map-count + .map-count { margin-top: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.map-stores { margin-top: 18px; display: grid; gap: 10px; }
+.map-filter select { width: 100%; max-width: 380px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, .06); color: var(--ink); border: 1px solid var(--line); padding: 0 14px; font: inherit; font-size: 14px; cursor: pointer; }
+.map-filter select:focus { outline: none; border-color: var(--y); }
+.map-filter option { background: #16161c; }
+.map-stores ul { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 34vh; overflow-y: auto; padding-right: 6px; scrollbar-width: thin; overscroll-behavior: contain; }
+.map-stores li { background: rgba(255, 255, 255, .05); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 3px; align-content: start; font-size: 13px; }
+.map-stores li b { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.map-stores li span { color: #c9c6cf; line-height: 1.4; }
+.map-stores li small { color: var(--y); font-size: 11px; letter-spacing: .04em; }
+.map-more { display: none; }
+.map-sheet { position: fixed; inset: 0; z-index: 80; background: var(--bg); display: flex; flex-direction: column; }
+.map-sheet header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--line); }
+.map-sheet h3 { font-size: 20px; letter-spacing: -.02em; }
+.map-sheet .map-back { margin: 0; }
+.map-sheet .map-stores { flex: 1; overflow-y: auto; margin: 0; padding: 16px; align-content: start; overscroll-behavior: contain; }
+.map-sheet .map-stores ul { max-height: none; overflow: visible; grid-template-columns: 1fr; padding: 0; }
+.map-sheet .map-filter select { max-width: none; }
+@media (max-width: 760px) {
+  .map-panel .map-stores { display: none; }
+  .map-more { display: inline-flex; margin-top: 12px; height: 42px; align-items: center; padding: 0 18px; border-radius: 99px; background: var(--y); color: #111; font-weight: 600; font-size: 14px; }
+}

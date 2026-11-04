@@ -105,6 +105,7 @@ O formulário faz `POST` JSON nesse endereço e só cai no WhatsApp se o envio f
 - `src/data.js`: números, lojas, cotas para a indústria, benefícios do lojista, marcas.
 - `src/data.js` → `STORIES`: histórias de reserva, usadas só se o blog não responder.
 - `src/geo.json`: estados e as 148 cidades (coordenadas reais).
+- `src/stores.json`: as 197 lojas do mapa (estado, cidade, nome, endereço), tiradas do mapa do site oficial em nov/2026.
 - `supabase/migrations/`: banco do blog e permissões de cada papel.
 - `scripts/migrate-wordpress.mjs`: regras de categoria da migração e quais posts viram Histórias da rede.
 - `public/brands/`, `public/img/`, `public/flags/`: imagens do site.
@@ -118,6 +119,7 @@ O formulário faz `POST` JSON nesse endereço e só cai no WhatsApp se o envio f
 
 ## Antes de publicar
 
+- O mapa oficial tem 197 lojas e nenhuma no DF; o site diz 220 lojas e inclui o DF. Atualizar `src/stores.json` ou o número.
 - Confirmar 220 lojas, R$ 780 mi (12 meses) e "80+ indústrias" em `src/data.js`.
 - Confirmar a cidade do DF (entrou como Brasília em `src/geo.json`).
 - Confirmar que a 4ª edição do Conexão Attini já aconteceu (o texto diz "já está na 4ª edição").

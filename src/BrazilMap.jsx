@@ -10,6 +10,27 @@ const plural = n => `${n} ${n > 1 ? 'cidades' : 'cidade'}`
 const count = r => (r.stores ? `${r.stores} ${r.stores > 1 ? 'lojas' : 'loja'} em ` : '') + plural(r.cities.length)
 const allStores = REGIONS.every(r => r.stores)
 
+// Lojas do estado em cartões (como no site oficial), com filtro por cidade.
+function StoreList({ r, active }) {
+  const [city, setCity] = useState('')
+  const byCity = r.shops.reduce((m, s) => m.set(s.c, (m.get(s.c) || 0) + 1), new Map())
+  const list = city ? r.shops.filter(s => s.c === city) : r.shops
+  return (
+    <div className="map-stores">
+      <label className="map-filter">
+        <span className="sr">Filtrar por cidade</span>
+        <select value={city} onChange={e => setCity(e.target.value)} tabIndex={active ? 0 : -1}>
+          <option value="">Todas as cidades ({r.stores} lojas)</option>
+          {[...byCity].map(([c, n]) => <option key={c} value={c}>{c} ({n})</option>)}
+        </select>
+      </label>
+      <ul data-lenis-prevent>
+        {list.map(s => <li key={s.n + s.a}><b>{s.n}</b><span>{s.a}</span><small>{s.c} · {s.uf}</small></li>)}
+      </ul>
+    </div>
+  )
+}
+
 // Mapa direto: abre com a rede inteira; o visitante escolhe o estado na barra ou clicando no mapa.
 export default function BrazilMap() {
   const root = useRef(), canvas = useRef(), tip = useRef(), rail = useRef(), focus = useRef()
@@ -203,6 +224,8 @@ export default function BrazilMap() {
   }, [sel])
 
   const reg = REGIONS.find(r => r.uf === sel)
+  const [sheet, setSheet] = useState(false) // lista de lojas em tela cheia (celular)
+  useEffect(() => { if (!reg) setSheet(false) }, [reg])
 
   return (
     <section className="map" id="rede" ref={root}>
@@ -212,7 +235,7 @@ export default function BrazilMap() {
         <div className={`map-intro ${!reg ? 'on' : ''}`} aria-hidden={!!reg}>
           <p className="eyebrow">Onde atuamos</p>
           <h2 className="h2">Uma rede que<br />atravessa o Brasil.</h2>
-          <p className="lead"><b>{STORES} lojas</b> em <b>{TOTAL_CITIES} cidades</b> de {AREA}. Escolha um estado para ver as cidades.</p>
+          <p className="lead"><b>{STORES} lojas</b> em <b>{TOTAL_CITIES} cidades</b> de {AREA}. Escolha um estado para ver as lojas.</p>
         </div>
         {REGIONS.map(r => (
           <div key={r.uf} className={`map-state ${reg === r ? 'on' : ''}`} aria-hidden={reg !== r}>
@@ -222,13 +245,27 @@ export default function BrazilMap() {
               <span className="map-flag"><img src={flag(r.uf)} alt={`Bandeira: ${r.name}`} /></span>
             </div>
             <h3>{r.name}</h3>
-            <p className="map-count">{r.stores > 0 && <><strong>{r.stores}</strong> {r.stores > 1 ? 'lojas' : 'loja'} em </>}<strong>{r.cities.length}</strong> {r.cities.length > 1 ? 'cidades' : 'cidade'}{!r.stores && ' com loja Attini'}</p>
-            <ul className="map-cities" data-lenis-prevent style={{ '--cols': r.cities.length > 30 ? 3 : r.cities.length > 8 ? 2 : 1 }}>
-              {r.cities.map((c, k) => <li key={c.n} style={{ '--i': Math.min(k, 40) }}>{c.n}</li>)}
-            </ul>
+            {r.stores > 0 && <p className="map-count"><strong>{r.stores}</strong> {r.stores > 1 ? 'lojas' : 'loja'}</p>}
+            <p className="map-count"><strong>{r.cities.length}</strong> {r.cities.length > 1 ? 'cidades' : 'cidade'}{!r.stores && ' com loja Attini'}</p>
+            {r.stores > 0 ? (
+              <>
+                <StoreList r={r} active={reg === r} />
+                <button className="map-more" onClick={() => setSheet(true)} tabIndex={reg === r ? 0 : -1}>Ver as {r.stores} lojas →</button>
+              </>
+            ) : (
+              <ul className="map-cities" data-lenis-prevent style={{ '--cols': r.cities.length > 30 ? 3 : r.cities.length > 8 ? 2 : 1 }}>
+                {r.cities.map((c, k) => <li key={c.n} style={{ '--i': Math.min(k, 40) }}>{c.n}</li>)}
+              </ul>
+            )}
           </div>
         ))}
       </div>
+      {sheet && reg?.stores > 0 && (
+        <div className="map-sheet" role="dialog" aria-modal="true" aria-label={`Lojas em ${reg.name}`} data-lenis-prevent>
+          <header><h3>Lojas em {reg.name}</h3><button className="map-back" onClick={() => setSheet(false)}>Fechar ✕</button></header>
+          <StoreList r={reg} active />
+        </div>
+      )}
       <nav className="map-rail" aria-label="Escolha o estado" ref={rail}>
         <button className={!reg ? 'on' : ''} aria-pressed={!reg} onClick={() => setSel(null)}>Toda a rede<small>{allStores ? `${STORES} lojas` : TOTAL_CITIES}</small></button>
         {REGIONS.map(r => (
