@@ -12,6 +12,7 @@ const allowed = () => [process.env.SITE_URL, 'http://localhost:5173', 'http://12
 // Envolve cada rota: confere a origem, trata erros e devolve JSON.
 export const route = fn => async (req, ctx) => {
   try {
+    if (!process.env.DATABASE_URL) fail(503, 'Banco de dados não configurado: preencha DATABASE_URL em server/.env.local (na Vercel, nas variáveis do projeto).')
     const origin = req.headers.get('origin')
     if (!['GET', 'HEAD'].includes(req.method) && origin && !allowed().includes(origin)) fail(403, 'Origem não permitida.')
     const params = ctx?.params ? await ctx.params : {}
@@ -19,6 +20,10 @@ export const route = fn => async (req, ctx) => {
     return out instanceof Response ? out : NextResponse.json(out ?? { ok: true })
   } catch (e) {
     if (e instanceof HttpError) return NextResponse.json({ error: e.message }, { status: e.status })
+    if (['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'CONNECT_TIMEOUT', '28P01', '3D000', 'XX000'].includes(e?.code) || e instanceof AggregateError) {
+      console.error(e)
+      return NextResponse.json({ error: e?.code === '28P01' ? 'Não foi possível entrar no banco: senha da DATABASE_URL incorreta.' : 'Não foi possível conectar ao banco de dados. Confira a DATABASE_URL.' }, { status: 503 })
+    }
     if (e?.code === '22P02') return NextResponse.json({ error: 'Não encontrado.' }, { status: 404 }) // id malformado
     if (e?.code === '23505') return NextResponse.json({ error: 'Já existe um registro com esse valor.' }, { status: 409 })
     console.error(e)

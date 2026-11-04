@@ -8,6 +8,9 @@ export async function api(path, { method = 'GET', body, form } = {}) {
     body: form || (body !== undefined ? JSON.stringify(body) : undefined),
   })
   const data = await r.json().catch(() => null)
+  if (!r.ok && !data) throw Object.assign(new Error(import.meta.env.DEV
+    ? 'O back-end não está respondendo. Ligue-o com "cd server && npm run dev".'
+    : 'O servidor não respondeu. Tente de novo em instantes.'), { status: r.status })
   if (!r.ok) throw Object.assign(new Error(data?.error || `Erro ${r.status}`), { status: r.status })
   return data
 }
