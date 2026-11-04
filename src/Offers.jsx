@@ -25,7 +25,7 @@ export default function Offers() {
     <section className="offers wrap" id="ofertas" aria-labelledby="of-t">
       <div className="of-head">
         <p className="eyebrow">O que a rede oferece à indústria</p>
-        <h2 className="h2 split" id="of-t"><span className="line"><span>{TRADE.length} formas de</span></span><span className="line"><span>entrar na colônia.</span></span></h2>
+        <h2 className="h2 split" id="of-t"><span className="line"><span>{TRADE.length} formas de</span></span><span className="line"><span>entrar na rede.</span></span></h2>
         <p className="lead reveal-up">Da negociação de tabela ao consumidor final. Escolha uma frente ou monte um plano anual com várias.</p>
       </div>
 

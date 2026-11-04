@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { sampleBrazil, isMobile, onVisible, reducedMotion } from './three-utils'
-import { TOTAL_CITIES, REGIONS } from './data'
+import { TOTAL_CITIES, STORES, AREA } from './data'
 
 const vert = /* glsl */ `
 uniform float uTime, uIntro, uMorph, uSize, uPR;
@@ -50,26 +50,27 @@ function sampleText(n, width) {
 }
 
 const COPY = {
-  industria: {
-    eyebrow: 'Para a indústria de material de construção',
-    l1: 'Sozinha, uma loja compra.', l2: ['Em rede, ela ', 'move o mercado.'],
-    sub: `${TOTAL_CITIES} cidades, ${REGIONS.length} estados e uma única mesa de negociação. Venda para a colônia inteira, não loja por loja.`,
-    cta: [['#ofertas', 'Ver o que a rede oferece', null], ['#contato', 'Falar com o comercial', 'industria']],
-  },
   lojista: {
     eyebrow: 'Para o lojista de material de construção',
     l1: 'Sua loja, com a força', l2: ['de uma ', 'rede inteira.'],
-    sub: `Compre direto da indústria com tabela exclusiva, tenha gestão de quem entende do setor e lojistas de ${TOTAL_CITIES} cidades do seu lado. A loja continua sua.`,
+    sub: `Compre direto da indústria com tabela exclusiva, tenha gestão de quem entende do setor e ${STORES} lojas do seu lado. A loja continua sua.`,
     cta: [['#contato', 'Quero ser Attini', 'lojista'], ['#lojista', 'Ver benefícios', null]],
+  },
+  industria: {
+    eyebrow: 'Para a indústria de material de construção',
+    l1: 'Sozinha, uma loja compra.', l2: ['Em rede, ela ', 'move o mercado.'],
+    sub: `${STORES} lojas em ${TOTAL_CITIES} cidades e uma única mesa de negociação. Venda para a rede inteira, não loja por loja.`,
+    cta: [['#industria', 'Ver o que a rede oferece', null], ['#contato', 'Falar com o comercial', 'industria']],
   },
 }
 
-export function AudSwitch({ aud, className = '' }) {
+// go: depois de trocar, leva o visitante ao conteúdo do público (usado no header)
+export function AudSwitch({ aud, className = '', go }) {
   return (
     <div className={`aud ${className}`} role="radiogroup" aria-label="Você é">
-      <button role="radio" aria-checked={aud === 'industria'} data-aud="industria">Sou indústria</button>
-      <button role="radio" aria-checked={aud === 'lojista'} data-aud="lojista">Sou lojista</button>
-      <i style={{ transform: `translateX(${aud === 'lojista' ? 100 : 0}%)` }} />
+      <button role="radio" aria-checked={aud === 'lojista'} data-aud="lojista" data-go={go && '#lojista'}>Sou lojista</button>
+      <button role="radio" aria-checked={aud === 'industria'} data-aud="industria" data-go={go && '#industria'}>Sou indústria</button>
+      <i style={{ transform: `translateX(${aud === 'industria' ? 100 : 0}%)` }} />
     </div>
   )
 }
@@ -193,9 +194,9 @@ export default function Hero({ aud }) {
           </div>
         </div>
         <div className="hero-b wrap">
-          <p className="eyebrow">Onde a colônia trabalha</p>
-          <p className="hero-b-big"><strong>{TOTAL_CITIES}</strong> cidades.<br /><strong>{REGIONS.length}</strong> estados.<br />Um só pedido.</p>
-          <p className="hero-sub">Em amarelo, os estados onde a Attini já está. A maior parte das lojas fica longe das capitais, onde o grande varejo não chega e o lojista local decide o que vende.</p>
+          <p className="eyebrow">Onde a rede está</p>
+          <p className="hero-b-big"><strong>{STORES}</strong> lojas.<br /><strong>{TOTAL_CITIES}</strong> cidades.<br />Uma só rede.</p>
+          <p className="hero-sub">Em amarelo, os {AREA} onde a Attini já está. A maior parte das lojas fica longe das capitais, onde o grande varejo não chega e o lojista local decide o que vende.</p>
         </div>
         <div className="hero-scroll" aria-hidden="true"><span />role para ver a rede</div>
       </div>

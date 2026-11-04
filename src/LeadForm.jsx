@@ -70,7 +70,7 @@ export default function LeadForm({ tab, setTab, preset }) {
       <div className="wrap contact-grid">
         <div className="contact-copy">
           <p className="eyebrow">Fale com a Attini</p>
-          <h2 className="h2 split"><span className="line"><span>Escolha o seu</span></span><span className="line"><span>lado da colônia.</span></span></h2>
+          <h2 className="h2 split">{(tab === 'lojista' ? ['Vem pra', 'Rede Attini.'] : ['Leve sua marca', 'para a rede.']).map(l => <span className="line" key={l}><span>{l}</span></span>)}</h2>
           <p className="lead reveal-up">
             {tab === 'industria'
               ? 'Conte quem é sua marca. Nosso time comercial responde com o tamanho da rede na sua categoria e os espaços disponíveis.'
@@ -84,10 +84,10 @@ export default function LeadForm({ tab, setTab, preset }) {
 
         <div className="form-card">
           <div className="tabs" role="tablist">
-            {[['industria', 'Sou indústria'], ['lojista', 'Sou lojista']].map(([k, l]) => (
+            {[['lojista', 'Sou lojista'], ['industria', 'Sou indústria']].map(([k, l]) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
             ))}
-            <i style={{ transform: `translateX(${tab === 'lojista' ? 100 : 0}%)` }} />
+            <i style={{ transform: `translateX(${tab === 'industria' ? 100 : 0}%)` }} />
           </div>
 
           {sent ? (

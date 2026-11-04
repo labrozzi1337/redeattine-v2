@@ -103,14 +103,7 @@
 .retail-photo img { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); height: 94%; width: auto; max-width: none; }
 .retail-photo figcaption { position: absolute; left: 18px; bottom: 18px; background: #111; color: var(--ink); border-radius: 18px; padding: 14px 18px; font-size: 13px; }
 .retail-photo figcaption b { color: var(--y); font-size: 26px; display: block; letter-spacing: -.03em; }
-.proof { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 56px; }
-.proof-card { display: grid; grid-template-columns: 150px 1fr; gap: 22px; align-items: center; background: var(--bg2); border: 1px solid var(--line); border-radius: 24px; padding: 18px; }
-.proof-card img { width: 150px; height: 120px; object-fit: cover; border-radius: 16px; background: #fff; }
-.proof-card:first-child img { object-fit: contain; background: #111; }
-.proof-card h3 { font-size: 20px; letter-spacing: -.02em; }
-.proof-card p { color: var(--mute); font-size: 14px; line-height: 1.55; margin-top: 6px; }
-@media (max-width: 900px) { .retail-top, .proof { grid-template-columns: 1fr; } }
-@media (max-width: 520px) { .proof-card { grid-template-columns: 1fr; } .proof-card img { width: 100%; height: 160px; } }
+@media (max-width: 900px) { .retail-top { grid-template-columns: 1fr; } }
 
 /* Contato com a TINA */
 .contact-photo { position: relative; margin-top: 40px; width: min(380px, 100%); aspect-ratio: 1; border-radius: 30px; overflow: hidden; background: #1b1a17 url(/img/padrao-banner.png) center / 220px; }
@@ -209,3 +202,69 @@
   .blog-head .btn { width: 100%; justify-content: center; }
   .blog-head { margin-bottom: 28px; }
 }
+
+/* ---- Apontamentos (nov/2026) ---- */
+
+/* Impacto: 5 números, R$ e "mi" menores para caber */
+.impact { padding-bottom: clamp(80px, 14vh, 160px); }
+.impact .stats { padding-bottom: 0; grid-template-columns: repeat(5, 1fr); }
+.stat-v { font-size: clamp(44px, 5vw, 84px); }
+.stat-v small { font-size: .42em; letter-spacing: -.02em; }
+@media (max-width: 1100px) {
+  .impact .stats { grid-template-columns: 1fr 1fr; }
+  .impact .stat { border-right: 0; padding-left: 0; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .impact .stat:first-child { grid-column: 1 / -1; }
+}
+
+/* Cards do lojista na trilha: lista em vez de parágrafo */
+.ind-card ul { list-style: none; margin-top: 18px; display: grid; gap: 10px; }
+.ind-card li { color: #a9a6ae; font-size: 15px; line-height: 1.45; padding-left: 20px; position: relative; }
+.ind-card li::before { content: ''; position: absolute; left: 0; top: .5em; width: 8px; height: 8px; background: var(--y); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+
+/* Como entrar na rede */
+.join { list-style: none; margin-top: 40px; max-width: 620px; border-top: 1px solid var(--line); }
+.join li { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.join span { color: var(--y); font-weight: 800; font-size: 28px; letter-spacing: -.04em; line-height: 1; }
+.join h3 { font-size: 20px; letter-spacing: -.02em; }
+.join p { color: var(--mute); font-size: 15px; line-height: 1.5; margin-top: 6px; }
+
+/* Histórias da rede */
+.stories { padding-block: clamp(90px, 14vh, 160px); }
+.st-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 56px; }
+.story { display: flex; flex-direction: column; background: var(--bg2); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; transition: border-color .4s, transform .6s var(--ease); }
+a.story:hover { border-color: rgba(255, 200, 21, .5); transform: translateY(-4px); }
+.story:first-child { grid-column: span 2; grid-row: span 2; }
+.st-img { position: relative; aspect-ratio: 16 / 10; overflow: hidden; }
+.story:first-child .st-img { aspect-ratio: auto; flex: 1; min-height: 280px; }
+.st-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 1s var(--ease); }
+a.story:hover .st-img img { transform: scale(1.05); }
+.st-tag { position: absolute; left: 14px; top: 14px; background: var(--y); color: #111; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; padding: 6px 10px; border-radius: 99px; }
+.st-c { padding: 22px 24px 24px; display: grid; gap: 10px; }
+.story h3 { font-size: 20px; letter-spacing: -.02em; line-height: 1.2; }
+.story:first-child h3 { font-size: clamp(24px, 2.4vw, 36px); }
+.story p { color: var(--mute); font-size: 14px; line-height: 1.55; }
+.story blockquote p { color: var(--ink); font-size: 18px; line-height: 1.45; }
+.story blockquote footer { color: var(--y); font-size: 13px; margin-top: 10px; }
+.st-go { color: var(--y); font-size: 13px; font-weight: 600; }
+.st-next { background: var(--y); color: #111; border: 0; justify-content: center; align-items: flex-start; gap: 24px; padding: 32px; }
+.st-next h3 { font-size: clamp(22px, 2vw, 30px); }
+@media (max-width: 900px) { .st-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) {
+  .st-grid { grid-template-columns: 1fr; }
+  .story:first-child { grid-column: auto; grid-row: auto; }
+  .story:first-child .st-img { flex: none; min-height: 0; aspect-ratio: 16 / 10; }
+}
+
+/* Mapa direto: voltar, lista rolável, barra que cabe em qualquer largura */
+.map-back { font-size: 13px; font-weight: 600; color: var(--y); margin-bottom: 18px; padding: 8px 14px 8px 10px; border: 1px solid var(--line); border-radius: 99px; background: rgba(11, 11, 15, .6); }
+.map-cities { overflow-y: auto; scrollbar-width: thin; }
+.map-intro .lead b { color: var(--ink); font-weight: 600; }
+.map-rail { left: 0; right: 0; transform: none; margin-inline: auto; width: max-content; max-width: calc(100% - 24px); overflow-x: auto; scrollbar-width: none; }
+.map-rail button { flex: none; }
+@media (max-width: 760px) { .map-back { margin-bottom: 10px; padding: 6px 12px 6px 8px; } }
+
+/* Logos: em grid o max-height:100% não resolve e logos quase quadrados vazavam (cortados). Flex + tamanho explícito. */
+.brand { display: flex; filter: none; opacity: 1; }
+.brand img { width: 100%; height: 100%; object-fit: contain; }
+/* Mobile: a barra de estados termina antes do botão do WhatsApp */
+@media (max-width: 760px) { .map-rail { margin-left: 12px; max-width: calc(100% - 96px); } }

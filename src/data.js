@@ -9,58 +9,31 @@ export const SOCIAL = {
 }
 
 // Ordem do tour no mapa: maior presença primeiro.
-export const STATE_NAMES = { GO: 'Goiás', TO: 'Tocantins', PB: 'Paraíba', RN: 'Rio Grande do Norte', MG: 'Minas Gerais', PA: 'Pará', BA: 'Bahia', MA: 'Maranhão', MT: 'Mato Grosso' }
+export const STATE_NAMES = { GO: 'Goiás', TO: 'Tocantins', PB: 'Paraíba', RN: 'Rio Grande do Norte', MG: 'Minas Gerais', PA: 'Pará', BA: 'Bahia', MA: 'Maranhão', MT: 'Mato Grosso', DF: 'Distrito Federal' }
 export const REGIONS = Object.keys(STATE_NAMES).map(uf => {
   const cities = geo.cities.filter(c => c.uf === uf)
   return { uf, name: STATE_NAMES[uf], cities }
 })
 export const TOTAL_CITIES = geo.cities.length
+export const N_STATES = REGIONS.filter(r => r.uf !== 'DF').length
+export const AREA = `${N_STATES} estados e o Distrito Federal`
+// CONFIRMAR antes de publicar: dados enviados pela Attini (nov/2026).
+export const STORES = 220
 
-// Números da faixa de prova. Cidades e estados vêm do mapa do site atual (nov/2026).
-// CONFIRMAR antes de publicar: volume de compras e nº de marcas.
+// Faixa de impacto. Lojas e volume informados pela Attini (nov/2026); cidades vêm do mapa.
+// CONFIRMAR antes de publicar: nº de indústrias parceiras.
 export const STATS = [
-  { value: REGIONS.length, label: 'estados', note: 'de Minas ao Rio Grande do Norte' },
-  { value: TOTAL_CITIES, label: 'cidades com loja Attini', note: 'a maioria no interior' },
-  { value: 332, prefix: 'R$ ', suffix: ' mi', label: 'comprados por ano', note: 'só pelas lojas de Goiás' },
+  { value: 780, prefix: 'R$ ', suffix: ' mi', label: 'em compras', note: 'nos últimos 12 meses, toda a rede', big: true },
+  { value: STORES, label: 'lojas associadas', note: 'com o nome e o jeito de cada dono' },
+  { value: TOTAL_CITIES, label: 'cidades', note: 'a maioria no interior' },
+  { value: N_STATES, suffix: ' + DF', label: 'estados e o Distrito Federal', note: 'de Minas ao Rio Grande do Norte' },
   { value: 80, suffix: '+', label: 'indústrias parceiras', note: 'nacionais e regionais' },
 ]
 
-const L = 'https://www.redeattini.com.br/wp-content/uploads/elementor/thumbs/'
-// ponytail: logos via hotlink do site atual; copiar para /public antes de ir ao ar.
+// Logos originais do site atual, recortados e padronizados em /public/brands.
 export const BRANDS = [
-  ['Amanco Wavin', 'amanco-wavin-ql9accy6mnv0aefmipgrqqi7wexf7obdf7lirx0848.png'],
-  ['Tramontina', 'tramontina-ql9axgfs0sqovbsfbtrbpeunvqxzz42hnmpujhq4iw.png'],
-  ['Gerdau', 'Gerdau-ql9aqpxf1jipnxkonwxku41qmc5at7bqqaekq3pp8e.png'],
-  ['Eternit', 'eternit-q8xsj7fd307y9qp4oktxcqa77qxcfgm9c1711cyjms.jpg'],
-  ['Lorenzetti', 'lorenzetti-logo-scaled-q8xsj1sby008c2xblie5xrpfnfp559zvb9a45p6wiu.jpg'],
-  ['Docol', 'docol_logo1-qtywjo0bqrl0iz1jpsii369ko7vvuvy9elngpdj666.png'],
-  ['Quartzolit', 'quartzolit-1-ql9beeh189xs696bdng75mwtetf7qocabi3z02lmgk.jpeg'],
-  ['Roca', 'roca-1-ql9benvf4manecsnurigukjfco4vvndlosmtsu7oxk.png'],
-  ['Fortlev', 'fortlev-q8xsiw5aszsief5iifyeit4o34gxv3dhahd7a1f9my.png'],
-  ['Coral', 'coral-logo-2-rps2b9y2iqe91wvuv46sbqotvzt0choo08v9n6qdh2.png'],
-  ['Starrett', 'starrett-logo-rps1i7rp84m43x3hk1z0qkosq51hddbf0erui7tki0.jpg'],
-  ['Elgin', 'elgin-ql9aq82hfou9jcamk77o0qjzc0lbqycubu0clug6p0.png'],
-  ['Astra', 'astra-1-ql9ansnhs3iljltlqnfd2um436k6v3psztc6z41spg.jpg'],
-  ['Atlas', 'NOVA-LOGO-ATLAS-OFICIAL_230809_142134-rps23abgffgid8hninuy4r9s436ox3yswp8osikum8.jpg'],
-  ['Onduline', 'Onduline-Logo-1-1134-rps12qdendf2v5l4yv195zcggnctkuul7rwwx4rzuy.jpg'],
-  ['Cortag', 'cortag-ql9apq7jtu5ter0kghhr7d281p1copdxxdm4hl6nty.png'],
-  ['Delta', 'logo-Delta-porcelanato-q8xsj5jopc5dmiruzk0o7qra0z6m02esnrw22t1c5c.jpg'],
-  ['Eucatex', 'eucatex-tintas-logo-rps2lo1u2smdepsg6lwaw4aabcl3g0xu3oiinbbpc8.png'],
-  ['Iquine', 'iquine-seeklogo-rps2pbn8nlmik4hau6s2l72thakhdng99ruhu1wkhs.png'],
-  ['Condor', 'condor-logo-png_seeklogo-326412-rps2ajml7de80ty34st8dxbx97eqcys6kmlo7fteyw.png'],
-  ['Alfagres', 'alfagres-logo-png_seeklogo-252961-rps1s7rvxoaxmkkk5vl4rjuc8pr29g0m1wmtb6zsaw.png'],
-  ['Luztol', 'Luztol-2-rps2t9kvbl0t98r4te4qjp9f6h4wny3q5actau249s.png'],
-  ['Fame', 'fame-logo-8-rps2lwidsaxyb7g5t7jy0k5fntfedavf4udvysz51k.png'],
-  ['Incopisos', 'Incopisos-ql9ardfdseevq6mjup392g49gyxh5mx15ippq0quvg.png'],
-  ['Precon', 'precon_-qtywv8etudf1e88p6ai89r6rtwvhksvcnunkaydrse.png'],
-  ['Cerbras', 'cerbras-qtyw03z7jut8z1g6wu6xplxbqm9yplbb1t0s94j1py.png'],
-  ['Wesco', 'nova-logo-wesco-qtywtk95oz4or6o2xki3u6d9t93zw68j3kwhl8uyqq.png'],
-  ['Ramassol', 'grupo-ramassol-ql9ar335p80q6h1kj2mct0q6xqcfsyrzg3jdfz66ww.png'],
-  ['Solomassa', 'LOGO_SOLOMASSA_SITE-rps3hv0u5iox1x0z70vashtmrfwo2tqvj0w7dhl9de.png'],
-  ['Zagonel', 'ZAGONEL-rps3m56dacjxxyt26vi45ex86msv56qus7vu2v8owi.png'],
-  ['Vitrofort', 'vitrofort-qlen1vhibmsnxjb1azic7ktt6istdorowpzevkomwm.jpg'],
-  ['Supermax', 'TINTASSUPERMAX-rps3ifpabvh85c6xu9t3bclrtx2qs60yxv8vxkqlyo.png'],
-].map(([name, file]) => ({ name, src: L + file }))
+  'Amanco Wavin', 'Tramontina', 'Gerdau', 'Eternit', 'Lorenzetti', 'Docol', 'Quartzolit', 'Roca', 'Fortlev', 'Coral', 'Starrett', 'Elgin', 'Astra', 'Atlas', 'Onduline', 'Cortag', 'Delta', 'Eucatex', 'Iquine', 'Condor', 'Alfagres', 'Luztol', 'Fame', 'Incopisos', 'Precon', 'Cerbras', 'Wesco', 'Ramassol', 'Solomassa', 'Zagonel', 'VM', 'Supermax',
+].map(name => ({ name, src: `/brands/${name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-')}.webp` }))
 
 export const INDUSTRY = [
   {
@@ -69,7 +42,7 @@ export const INDUSTRY = [
   },
   {
     n: '02', img: '/img/ai/fachada.webp', t: 'O interior que o seu\nrepresentante não alcança.',
-    d: `${TOTAL_CITIES} cidades, a maioria fora das capitais. Lojas onde quem decide a compra é o dono do balcão, e quem indica a marca é o balconista.`,
+    d: `${STORES} lojas em ${TOTAL_CITIES} cidades, a maioria fora das capitais. Lojas onde quem decide a compra é o dono do balcão, e quem indica a marca é o balconista.`,
   },
   {
     n: '03', img: '/img/ai/gondola.webp', t: 'Trade marketing\ncom execução garantida.',
@@ -140,9 +113,47 @@ export const TRADE = [
   },
 ]
 
+// Para o lojista: o que a loja ganha comprando em rede (trilha horizontal)
 export const RETAIL = [
-  ['Compra', ['Negociação direta com a indústria', 'Tabelas de preço exclusivas', 'Sistema de gestão de compras com suporte']],
-  ['Gestão', ['Encontros de análise de indicadores', 'Assessoria contábil e financeira', 'Médias de mercado para comparar sua loja']],
-  ['Marketing', ['Campanhas de venda com conteúdo pronto', 'Suporte de marketing digital', 'Festival de Prêmios para o seu cliente']],
-  ['Comunidade', ['Troca diária com lojistas da rede', 'Treinamentos e reuniões mensais', 'Lojista Protagonista e Conexão Attini']],
+  { n: '01', img: '/img/ai/caminhao.webp', t: 'Compra direta\ncom a indústria.', items: ['Negociação direta com mais de 80 indústrias', 'Tabelas de preço exclusivas da rede', 'Sistema de gestão de compras com suporte'] },
+  { n: '02', img: '/img/ai/balcao.webp', t: 'Gestão de quem\nentende do balcão.', items: ['Encontros de análise de indicadores', 'Assessoria contábil e financeira', 'Médias de mercado para comparar sua loja'] },
+  { n: '03', img: '/img/ai/festival.webp', t: 'Marketing pronto\npara a sua cidade.', items: ['Campanhas de venda com conteúdo pronto', 'Suporte de marketing digital', 'Festival de Prêmios para o seu cliente'] },
+  { n: '04', img: '/img/historias/minas.webp', t: 'Lojistas do\nseu lado.', items: ['Troca diária com lojistas da rede', 'Treinamentos e reuniões mensais', 'Lojista Protagonista e Conexão Attini'] },
+]
+
+export const JOIN = [
+  ['Conte sobre a sua loja', 'Um cadastro de dois minutos, com CNPJ, cidade e faturamento aproximado.'],
+  ['Converse com um consultor', 'Ele liga para entender a sua loja e mostra o que muda comprando em rede.'],
+  ['Comece a comprar em rede', `Tabelas da rede, gestão, marketing e lojistas de ${AREA} do seu lado.`],
+]
+
+// Histórias reais publicadas no blog. Para um depoimento, adicione quote e who:
+// { tag: 'Depoimento', quote: 'Texto aprovado pelo lojista', who: 'Nome · Loja (UF)', img: '/img/historias/foto.webp' }
+const B = 'https://www.redeattini.com.br/'
+export const STORIES = [
+  {
+    tag: 'Conexão Attini', img: '/img/historias/conexao-4.webp', link: B + '2025/06/conexao-attini-a-1a-edicao-de-um-evento-que-promete-redefinir-o-setor-de-matcon/',
+    t: 'R$ 12 milhões em negócios em um único dia',
+    d: 'Na 1ª edição, 60 lojas associadas e mais de 200 participantes negociaram frente a frente com as indústrias. O evento já está na 4ª edição.',
+  },
+  {
+    tag: 'Lojistas na mídia', img: '/img/historias/anamaco.webp', link: B + '2026/08/lojistas-attini-ganham-pagina-na-revista-anamaco-e-comprovam-a-forca-da-rede/',
+    t: 'Lojistas Attini na Revista ANAMACO',
+    d: 'Flávio Nóbrega (Casa Seridó, PB), Dante Aligieri e Henrique Lima (Casa Center, PB) e Renata Rezende (Construtora Rezende, GO) mostraram como tecnologia e atendimento fecham a venda no pequeno varejo.',
+  },
+  {
+    tag: 'Festival de Prêmios', img: '/img/historias/festival.webp', link: B + '2024/11/festival-de-premios-da-rede-attini-fortalecendo-conexoes-premiando-resultados/',
+    t: 'O cliente da loja concorrendo a moto, TV e iPhone',
+    d: 'Com Atlas e Luztol, cada compra a partir de R$ 200 em uma loja da rede virou um bilhete da sorte para o consumidor final.',
+  },
+  {
+    tag: 'Expansão', img: '/img/historias/minas.webp', link: B + '2025/08/attini-acelera-expansao-e-chega-a-minas-gerais-abrindo-novas-oportunidades-para-lojistas-do-sudeste/',
+    t: 'A rede chegou a Minas Gerais',
+    d: 'A reunião com lojistas mineiros abriu o caminho da Attini no Sudeste.',
+  },
+  {
+    tag: 'Embaixador', img: '/img/historias/vampeta.webp', link: B + '2024/03/vampeta-pentacampeao-do-mundo-pela-selecao-brasileira-e-o-embaixador-da-rede-attini/',
+    t: 'Vampeta veste a camisa da Attini',
+    d: 'O pentacampeão do mundo pela Seleção é o embaixador da rede.',
+  },
 ]

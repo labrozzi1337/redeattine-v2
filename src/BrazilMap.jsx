@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { statePolys, proj, ACTIVE, isMobile, onVisible } from './three-utils'
-import { REGIONS, TOTAL_CITIES } from './data'
-import { scrollTo } from './scroll'
+import { REGIONS, TOTAL_CITIES, STORES, AREA } from './data'
 
-const STEPS = REGIONS.length + 1 // 0 = visão geral, 1..9 estados, 10 = fechamento
-const DUR = STEPS + 1 // uma unidade de timeline por passo
 const flag = uf => `/flags/${uf}.png`
+const plural = n => `${n} ${n > 1 ? 'cidades' : 'cidade'}`
 
+// Mapa direto: abre com a rede inteira; o visitante escolhe o estado na barra ou clicando no mapa.
 export default function BrazilMap() {
-  const root = useRef(), canvas = useRef(), tip = useRef(), st = useRef(), rail = useRef()
-  const [step, setStep] = useState(0)
+  const root = useRef(), canvas = useRef(), tip = useRef(), rail = useRef(), focus = useRef()
+  const [sel, setSel] = useState(null)
 
   useEffect(() => {
     let raf, visible = true
@@ -120,22 +118,39 @@ export default function BrazilMap() {
       camera.lookAt(look.set(cam.tx, cam.ty, 0))
     }
 
+    // Visão geral: todos os estados da rede acesos. Estado escolhido: sobe, acende e mostra a bandeira.
+    focus.current = uf => {
+      const k = REGIONS.findIndex(r => r.uf === uf)
+      gsap.to(cam, { ...(k < 0 ? overview : shots[k]), duration: 1.4, ease: 'power3.inOut', overwrite: true })
+      REGIONS.forEach((r, i) => {
+        const g = groups[r.uf], on = i === k, all = k < 0
+        gsap.to(g.position, { z: on ? 0.35 : 0, duration: 0.9, ease: 'power3.inOut', overwrite: true })
+        gsap.to(g.userData.mat, { emissiveIntensity: on ? 0.6 : all ? 0.25 : 0.03, duration: 0.9, overwrite: true })
+        gsap.to(g.userData.flag, { opacity: on ? 1 : 0, duration: 0.5, overwrite: true })
+      })
+    }
+
     const ray = new THREE.Raycaster(), ndc = new THREE.Vector2()
-    const move = e => {
+    const hit = e => {
       const r = el.getBoundingClientRect()
       ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
       ray.setFromCamera(ndc, camera)
-      const s = ray.intersectObjects(meshes)[0]?.object.userData
-      const t = tip.current
+      return ray.intersectObjects(meshes)[0]?.object.userData
+    }
+    const move = e => {
+      const s = hit(e), t = tip.current, r = el.getBoundingClientRect()
+      const reg = s && REGIONS.find(x => x.uf === s.uf)
+      el.style.cursor = reg ? 'pointer' : ''
       if (!s) { t.style.opacity = 0; return }
-      const reg = REGIONS.find(x => x.uf === s.uf)
       t.innerHTML = reg
-        ? `<img src="${flag(s.uf)}" alt=""><b>${s.name}</b><span>${reg.cities.length} ${reg.cities.length > 1 ? 'cidades' : 'cidade'}</span>`
+        ? `<img src="${flag(s.uf)}" alt=""><b>${s.name}</b><span>${plural(reg.cities.length)} · clique para ver</span>`
         : `<b>${s.name}</b><span>próxima fronteira</span>`
       t.style.opacity = 1
       t.style.transform = `translate(${e.clientX - r.left + 16}px, ${e.clientY - r.top + 16}px)`
     }
+    const click = e => { const s = hit(e); if (s && ACTIVE.has(s.uf)) setSel(s.uf) }
     el.addEventListener('pointermove', move)
+    el.addEventListener('click', click)
     el.addEventListener('pointerleave', () => (tip.current.style.opacity = 0))
     addEventListener('resize', size)
     const stopVis = onVisible(el, v => (visible = v))
@@ -151,34 +166,12 @@ export default function BrazilMap() {
     }
     tick()
 
-    // Tour: cada passo ocupa 1 unidade; a câmera viaja em 0,7 e segura o resto.
+    // Entrada: as cidades acendem estado por estado quando o mapa aparece
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: 'power3.inOut' } })
-      tl.to({}, { duration: DUR }, 0) // fixa a duração total
+      const tl = gsap.timeline({ scrollTrigger: { trigger: root.current, start: 'top 60%', once: true } })
       REGIONS.forEach((r, k) => {
-        const i = k + 1, at = i - 0.4, g = groups[r.uf]
-        tl.to(cam, { ...shots[k], duration: 0.7 }, at)
-          .to(g.position, { z: 0.35, duration: 0.6 }, at + 0.1)
-          .to(g.userData.mat, { emissiveIntensity: 0.6, duration: 0.6 }, at + 0.1)
-          .to(g.userData.flag, { opacity: 1, duration: 0.45, ease: 'power2.out' }, at + 0.35)
-          .to(pillars[k].scale, { z: 1, duration: 0.6, ease: 'expo.out' }, at + 0.4)
-        if (k) {
-          const p = groups[REGIONS[k - 1].uf]
-          tl.to(p.position, { z: 0, duration: 0.5 }, at)
-            .to(p.userData.mat, { emissiveIntensity: 0.05, duration: 0.5 }, at)
-            .to(p.userData.flag, { opacity: 0, duration: 0.35 }, at)
-        }
-      })
-      const last = groups[REGIONS.at(-1).uf], end = STEPS - 0.4
-      tl.to(cam, { ...overview, duration: 0.8 }, end)
-        .to(last.position, { z: 0, duration: 0.5 }, end)
-        .to(last.userData.mat, { emissiveIntensity: 0.05, duration: 0.5 }, end)
-      // Fechamento: todas as bandeiras juntas formam a colcha da rede
-      REGIONS.forEach((r, k) => tl.to(groups[r.uf].userData.flag, { opacity: 0.92, duration: 0.4 }, end + 0.3 + k * 0.04))
-
-      st.current = ScrollTrigger.create({
-        trigger: root.current, start: 'top top', end: `+=${DUR * (mobile ? 60 : 85)}%`, pin: true, scrub: 0.6, animation: tl,
-        onUpdate: self => setStep(Math.min(STEPS, Math.floor(self.progress * DUR + 0.05))),
+        tl.to(groups[r.uf].userData.mat, { emissiveIntensity: 0.25, duration: 0.5 }, k * 0.12)
+          .to(pillars[k].scale, { z: 1, duration: 0.8, ease: 'expo.out' }, k * 0.12)
       })
     }, root)
 
@@ -190,51 +183,44 @@ export default function BrazilMap() {
     }
   }, [])
 
-  // Mantém o estado ativo visível na barra (no mobile ela rola)
   useEffect(() => {
-    const r = rail.current, b = r?.children[Math.min(step, REGIONS.length) - 1]
+    focus.current?.(sel)
+    // Mantém o estado ativo visível na barra (no mobile ela rola)
+    const r = rail.current, b = r?.querySelector('.on')
     if (b && r.scrollWidth > r.clientWidth) r.scrollTo({ left: b.offsetLeft - r.clientWidth / 2 + b.offsetWidth / 2, behavior: 'smooth' })
-  }, [step])
+  }, [sel])
 
-  // Vai direto ao meio do "segurar" do passo
-  const go = i => { const s = st.current; s && scrollTo(s.start + ((i + 0.55) / DUR) * (s.end - s.start)) }
-  const reg = step >= 1 && step <= REGIONS.length ? REGIONS[step - 1] : null
+  const reg = REGIONS.find(r => r.uf === sel)
 
   return (
     <section className="map" id="rede" ref={root}>
       <canvas ref={canvas} className="map-canvas" aria-label="Mapa 3D do Brasil com os estados onde a Rede Attini atua" />
       <div ref={tip} className="map-tip" />
       <div className="map-panel wrap">
-        <div className={`map-intro ${step === 0 ? 'on' : ''}`}>
+        <div className={`map-intro ${!reg ? 'on' : ''}`} aria-hidden={!!reg}>
           <p className="eyebrow">Onde atuamos</p>
-          <h2 className="h2">Uma colônia que<br />atravessa o Brasil.</h2>
-          <p className="lead">Role e percorra a rede, estado por estado. Cada coluna de luz é uma cidade com loja Attini.</p>
+          <h2 className="h2">Uma rede que<br />atravessa o Brasil.</h2>
+          <p className="lead"><b>{STORES} lojas</b> em <b>{TOTAL_CITIES} cidades</b> de {AREA}. Escolha um estado para ver as cidades.</p>
         </div>
         {REGIONS.map(r => (
           <div key={r.uf} className={`map-state ${reg === r ? 'on' : ''}`} aria-hidden={reg !== r}>
+            <button className="map-back" onClick={() => setSel(null)} tabIndex={reg === r ? 0 : -1}>← Toda a rede</button>
             <div className="map-id">
               <span className="map-uf">{r.uf}</span>
-              <span className="map-flag"><img src={flag(r.uf)} alt={`Bandeira de ${r.name}`} /></span>
+              <span className="map-flag"><img src={flag(r.uf)} alt={`Bandeira: ${r.name}`} /></span>
             </div>
             <h3>{r.name}</h3>
             <p className="map-count"><strong>{r.cities.length}</strong> {r.cities.length > 1 ? 'cidades' : 'cidade'} com loja Attini</p>
-            <ul className="map-cities" style={{ '--cols': r.cities.length > 30 ? 3 : r.cities.length > 8 ? 2 : 1 }}>
-              {r.cities.map((c, k) => <li key={c.n} style={{ '--i': k }}>{c.n}</li>)}
+            <ul className="map-cities" data-lenis-prevent style={{ '--cols': r.cities.length > 30 ? 3 : r.cities.length > 8 ? 2 : 1 }}>
+              {r.cities.map((c, k) => <li key={c.n} style={{ '--i': Math.min(k, 40) }}>{c.n}</li>)}
             </ul>
           </div>
         ))}
-        <div className={`map-intro ${step === STEPS ? 'on' : ''}`}>
-          <p className="eyebrow">E a colônia não para</p>
-          <h2 className="h2">{TOTAL_CITIES} cidades hoje.<br />A próxima pode ser a sua.</h2>
-          <div className="ctas">
-            <a className="btn btn-y magnetic" href="#contato" data-tab="industria">Levar minha marca à rede</a>
-            <a className="btn btn-o magnetic" href="#contato" data-tab="lojista">Abrir Attini na minha cidade</a>
-          </div>
-        </div>
       </div>
-      <nav className="map-rail" aria-label="Estados" ref={rail}>
-        {REGIONS.map((r, i) => (
-          <button key={r.uf} className={reg === r ? 'on' : step > i + 1 ? 'done' : ''} onClick={() => go(i + 1)} aria-label={`${r.name}, ${r.cities.length} cidades`}>
+      <nav className="map-rail" aria-label="Escolha o estado" ref={rail}>
+        <button className={!reg ? 'on' : ''} aria-pressed={!reg} onClick={() => setSel(null)}>Toda a rede<small>{TOTAL_CITIES}</small></button>
+        {REGIONS.map(r => (
+          <button key={r.uf} className={reg === r ? 'on' : ''} aria-pressed={reg === r} onClick={() => setSel(r.uf)} aria-label={`${r.name}, ${plural(r.cities.length)}`}>
             <img src={flag(r.uf)} alt="" />{r.uf}<small>{r.cities.length}</small>
           </button>
         ))}
