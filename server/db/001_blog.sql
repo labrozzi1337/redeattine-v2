@@ -3,7 +3,7 @@
 create schema if not exists "SYS_SITE_ATTINI";
 
 -- Pessoas que entram no painel. Papel: admin (tudo), editor (publica e modera), author (escreve e envia para revisão).
-create table "SYS_SITE_ATTINI".users (
+create table if not exists "SYS_SITE_ATTINI".users (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   name text not null default '',
@@ -17,7 +17,7 @@ create table "SYS_SITE_ATTINI".users (
 );
 
 -- Links de convite e de nova senha (guardamos só o hash do token).
-create table "SYS_SITE_ATTINI".auth_tokens (
+create table if not exists "SYS_SITE_ATTINI".auth_tokens (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references "SYS_SITE_ATTINI".users on delete cascade,
   kind text not null check (kind in ('invite', 'reset')),
@@ -27,14 +27,14 @@ create table "SYS_SITE_ATTINI".auth_tokens (
   created_at timestamptz not null default now()
 );
 
-create table "SYS_SITE_ATTINI".categories (
+create table if not exists "SYS_SITE_ATTINI".categories (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
   created_at timestamptz not null default now()
 );
 
-create table "SYS_SITE_ATTINI".posts (
+create table if not exists "SYS_SITE_ATTINI".posts (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
   title text not null default '',
@@ -59,9 +59,9 @@ create table "SYS_SITE_ATTINI".posts (
   updated_at timestamptz not null default now(),
   updated_by uuid references "SYS_SITE_ATTINI".users on delete set null
 );
-create index posts_public_idx on "SYS_SITE_ATTINI".posts (status, published_at desc);
+create index if not exists posts_public_idx on "SYS_SITE_ATTINI".posts (status, published_at desc);
 
-create table "SYS_SITE_ATTINI".post_revisions (
+create table if not exists "SYS_SITE_ATTINI".post_revisions (
   id bigint generated always as identity primary key,
   post_id uuid not null references "SYS_SITE_ATTINI".posts on delete cascade,
   title text not null,
@@ -70,9 +70,9 @@ create table "SYS_SITE_ATTINI".post_revisions (
   saved_at timestamptz not null,
   saved_by uuid references "SYS_SITE_ATTINI".users on delete set null
 );
-create index post_revisions_post_idx on "SYS_SITE_ATTINI".post_revisions (post_id, saved_at desc);
+create index if not exists post_revisions_post_idx on "SYS_SITE_ATTINI".post_revisions (post_id, saved_at desc);
 
-create table "SYS_SITE_ATTINI".media (
+create table if not exists "SYS_SITE_ATTINI".media (
   id uuid primary key default gen_random_uuid(),
   path text not null unique,
   url text not null,
@@ -84,7 +84,7 @@ create table "SYS_SITE_ATTINI".media (
   created_at timestamptz not null default now()
 );
 
-create table "SYS_SITE_ATTINI".comments (
+create table if not exists "SYS_SITE_ATTINI".comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid not null references "SYS_SITE_ATTINI".posts on delete cascade,
   parent_id uuid references "SYS_SITE_ATTINI".comments on delete cascade,
@@ -96,9 +96,9 @@ create table "SYS_SITE_ATTINI".comments (
   legacy_id int unique,
   created_at timestamptz not null default now()
 );
-create index comments_post_idx on "SYS_SITE_ATTINI".comments (post_id, created_at);
+create index if not exists comments_post_idx on "SYS_SITE_ATTINI".comments (post_id, created_at);
 
-create table "SYS_SITE_ATTINI".post_views (
+create table if not exists "SYS_SITE_ATTINI".post_views (
   id bigint generated always as identity primary key,
   post_id uuid not null references "SYS_SITE_ATTINI".posts on delete cascade,
   visitor text,
@@ -106,8 +106,8 @@ create table "SYS_SITE_ATTINI".post_views (
   device text,
   created_at timestamptz not null default now()
 );
-create index post_views_time_idx on "SYS_SITE_ATTINI".post_views (created_at);
-create index post_views_post_idx on "SYS_SITE_ATTINI".post_views (post_id, created_at);
+create index if not exists post_views_time_idx on "SYS_SITE_ATTINI".post_views (created_at);
+create index if not exists post_views_post_idx on "SYS_SITE_ATTINI".post_views (post_id, created_at);
 
 -- Num projeto Supabase, a API pública não enxerga este schema: só o back-end, pela conexão direta.
 do $$ begin
