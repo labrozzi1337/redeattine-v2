@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /admin/
+
+# Depois de criar o projeto no Supabase, troque SEU-PROJETO pelo id dele:
+Sitemap: https://SEU-PROJETO.supabase.co/functions/v1/sitemap

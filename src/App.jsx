@@ -138,14 +138,21 @@ function Track({ aud, id, eyebrow, title, lead, cards, cta, ctaLabel }) {
   )
 }
 
+// Posts marcados "Histórias da rede" no painel; sem Supabase, as histórias fixas de data.js.
 function Stories({ aud }) {
   const [t, label] = AUD[aud].next
+  const [stories, setStories] = useState(STORIES)
+  useEffect(() => {
+    import('./blog/api').then(({ listPosts, postHref }) => listPosts({ stories: true, limit: 5 }).then(list => {
+      if (list.length) setStories(list.map(p => ({ tag: p.tags[0] || p.category?.name || 'Rede Attini', img: p.cover_url, t: p.title, d: p.excerpt, link: postHref(p) })))
+    })).catch(() => {})
+  }, [])
   return (
     <section className="stories wrap" id="historias" aria-labelledby="st-t">
       <p className="eyebrow" id="st-t">Histórias da rede</p>
       <Lines>{'Gente de verdade,\nresultado de verdade.'}</Lines>
       <div className="st-grid">
-        {STORIES.map(s => {
+        {stories.map(s => {
           const body = (
             <>
               <div className="st-img"><img src={s.img} alt="" loading="lazy" /><span className="st-tag">{s.tag}</span></div>
@@ -158,7 +165,7 @@ function Stories({ aud }) {
             </>
           )
           return s.link
-            ? <a key={s.t || s.who} className="story reveal-up" href={s.link} target="_blank" rel="noopener" data-cursor="Ler">{body}</a>
+            ? <a key={s.t || s.who} className="story reveal-up" href={s.link} data-cursor="Ler">{body}</a>
             : <article key={s.t || s.who} className="story reveal-up">{body}</article>
         })}
         <div className="story st-next reveal-up">
@@ -249,6 +256,8 @@ export default function App() {
       off = () => removeEventListener('pointermove', move)
     }
     const refresh = () => ScrollTrigger.refresh()
+    // Chegando de outra página com #contato (ex.: CTA do blog), rola até a seção depois da abertura
+    if (location.hash.length > 1) setTimeout(() => scrollTo(location.hash, { offset: location.hash === '#contato' ? -40 : 0 }), 400)
     addEventListener('load', refresh)
     document.fonts.ready.then(refresh)
 

@@ -127,32 +127,32 @@ export const JOIN = [
   ['Comece a comprar em rede', `Tabelas da rede, gestão, marketing e lojistas de ${AREA} do seu lado.`],
 ]
 
-// Histórias reais publicadas no blog. Para um depoimento, adicione quote e who:
+// Reserva das Histórias da rede: a home usa os posts marcados "Histórias da rede" no painel.
+// Para um depoimento, adicione quote e who:
 // { tag: 'Depoimento', quote: 'Texto aprovado pelo lojista', who: 'Nome · Loja (UF)', img: '/img/historias/foto.webp' }
-const B = 'https://www.redeattini.com.br/'
 export const STORIES = [
   {
-    tag: 'Conexão Attini', img: '/img/historias/conexao-4.webp', link: B + '2025/06/conexao-attini-a-1a-edicao-de-um-evento-que-promete-redefinir-o-setor-de-matcon/',
+    tag: 'Conexão Attini', img: '/img/historias/conexao-4.webp', link: '/blog/conexao-attini-a-1a-edicao-de-um-evento-que-promete-redefinir-o-setor-de-matcon',
     t: 'R$ 12 milhões em negócios em um único dia',
     d: 'Na 1ª edição, 60 lojas associadas e mais de 200 participantes negociaram frente a frente com as indústrias. O evento já está na 4ª edição.',
   },
   {
-    tag: 'Lojistas na mídia', img: '/img/historias/anamaco.webp', link: B + '2026/08/lojistas-attini-ganham-pagina-na-revista-anamaco-e-comprovam-a-forca-da-rede/',
+    tag: 'Lojistas na mídia', img: '/img/historias/anamaco.webp', link: '/blog/lojistas-attini-ganham-pagina-na-revista-anamaco-e-comprovam-a-forca-da-rede',
     t: 'Lojistas Attini na Revista ANAMACO',
     d: 'Flávio Nóbrega (Casa Seridó, PB), Dante Aligieri e Henrique Lima (Casa Center, PB) e Renata Rezende (Construtora Rezende, GO) mostraram como tecnologia e atendimento fecham a venda no pequeno varejo.',
   },
   {
-    tag: 'Festival de Prêmios', img: '/img/historias/festival.webp', link: B + '2024/11/festival-de-premios-da-rede-attini-fortalecendo-conexoes-premiando-resultados/',
+    tag: 'Festival de Prêmios', img: '/img/historias/festival.webp', link: '/blog/festival-de-premios-da-rede-attini-fortalecendo-conexoes-premiando-resultados',
     t: 'O cliente da loja concorrendo a moto, TV e iPhone',
     d: 'Com Atlas e Luztol, cada compra a partir de R$ 200 em uma loja da rede virou um bilhete da sorte para o consumidor final.',
   },
   {
-    tag: 'Expansão', img: '/img/historias/minas.webp', link: B + '2025/08/attini-acelera-expansao-e-chega-a-minas-gerais-abrindo-novas-oportunidades-para-lojistas-do-sudeste/',
+    tag: 'Expansão', img: '/img/historias/minas.webp', link: '/blog/attini-acelera-expansao-e-chega-a-minas-gerais-abrindo-novas-oportunidades-para-lojistas-do-sudeste',
     t: 'A rede chegou a Minas Gerais',
     d: 'A reunião com lojistas mineiros abriu o caminho da Attini no Sudeste.',
   },
   {
-    tag: 'Embaixador', img: '/img/historias/vampeta.webp', link: B + '2024/03/vampeta-pentacampeao-do-mundo-pela-selecao-brasileira-e-o-embaixador-da-rede-attini/',
+    tag: 'Embaixador', img: '/img/historias/vampeta.webp', link: '/blog/vampeta-pentacampeao-do-mundo-pela-selecao-brasileira-e-o-embaixador-da-rede-attini',
     t: 'Vampeta veste a camisa da Attini',
     d: 'O pentacampeão do mundo pela Seleção é o embaixador da rede.',
   },
