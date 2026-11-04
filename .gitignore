@@ -3,3 +3,7 @@ dist/
 .claude/
 .env*
 !.env.example
+.next/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts

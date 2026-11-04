@@ -1,0 +1,21 @@
+{
+  "name": "attini-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.js",
+    "db:seed": "node --env-file-if-exists=.env.local scripts/seed.js",
+    "db:admin": "node --env-file-if-exists=.env.local scripts/create-admin.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "next": "^16.4.5",
+    "nodemailer": "^7.0.10",
+    "postgres": "^3.4.7",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}
