@@ -35,8 +35,8 @@ Tudo aponta para o projeto real do Supabase (`gfzxqqbjxwqfwqoeecbx`). Não há b
    As 46 imagens dos posts já estão no Storage (bucket `site-attini`). Pode rodar o `setup` de novo sem duplicar nada.
 3. **Primeiro acesso**: `elvis@labrozzi.com.br` com a senha provisória combinada. O painel obriga a criar uma senha
    nova antes de liberar qualquer coisa.
-4. **Testar na máquina** (opcional): `cd server && npm run dev` (back-end, porta 3001) e, na raiz, `npm run dev`
-   (site em http://localhost:5173, painel em /admin/). Usa o banco real.
+4. **Rodar na máquina**: na raiz, `npm run dev` sobe o site (http://localhost:5173, painel em /admin) e o back-end
+   (porta 3001) juntos; Ctrl+C desliga os dois. Usa o banco real. Separados: `npm run dev:site` e `npm run dev:api`.
 
 ## Colocar no ar (Vercel)
 

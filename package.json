@@ -3,8 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:site": "vite",
+    "dev:api": "npm run dev --prefix server",
     "build": "vite build",
+    "build:api": "npm run build --prefix server",
     "preview": "vite preview"
   },
   "dependencies": {
