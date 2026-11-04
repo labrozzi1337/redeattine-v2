@@ -2,12 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { lenis, scrollTo } from './scroll'
-import Hero, { AudSwitch } from './Hero'
+import Hero from './Hero'
+import { Header, Footer, readAud, saveAud } from './Layout'
 import BrazilMap from './BrazilMap'
 import Offers from './Offers'
 import LeadForm from './LeadForm'
 import Blog from './Blog'
-import { STATS, INDUSTRY, RETAIL, JOIN, STORIES, BRANDS, PHONE, WHATS, SOCIAL, TOTAL_CITIES, STORES } from './data'
+import { STATS, INDUSTRY, RETAIL, JOIN, STORIES, BRANDS, TOTAL_CITIES, STORES } from './data'
 
 const MANIFESTO = 'Attini é o nome de uma tribo de formigas que cultiva o próprio alimento e ergue colônias com milhões de indivíduos. Nenhuma carrega o peso sozinha. A rede funciona igual: cada loja põe a sua força, e o volume de todas negocia por cada uma.'
 
@@ -15,8 +16,6 @@ const MANIFESTO = 'Attini é o nome de uma tribo de formigas que cultiva o próp
 const AUD = {
   lojista: {
     ticker: ['Compra direta da indústria', 'Tabelas exclusivas', 'Conexão Attini', 'Festival de Prêmios', 'Lojista Protagonista', `${STORES} lojas`],
-    nav: [['#lojista', 'Benefícios'], ['#como-entrar', 'Como entrar'], ['#rede', 'Onde atuamos'], ['#conexao', 'Conexão'], ['#historias', 'Histórias']],
-    cta: 'Quero ser Attini',
     track: {
       id: 'lojista', eyebrow: 'Para o lojista', title: 'Preço de gigante.\nLoja de dono.', cards: RETAIL,
       lead: 'Sua loja continua com o seu nome, o seu jeito e o seu cliente. A rede entra com o que uma loja sozinha não consegue: volume, método e gente para trocar ideia.',
@@ -31,8 +30,6 @@ const AUD = {
   },
   industria: {
     ticker: ['Compra conjunta', 'Trade marketing', 'Conexão Attini', 'Festival de Prêmios', `${STORES} lojas`, `${TOTAL_CITIES} cidades`],
-    nav: [['#industria', 'Por que a rede'], ['#ofertas', 'Cotas'], ['#rede', 'Onde atuamos'], ['#conexao', 'Conexão'], ['#historias', 'Histórias']],
-    cta: 'Vender para a rede',
     track: {
       id: 'industria', eyebrow: 'Por que vender pela rede', title: `Uma porta.\n${STORES} lojas.`, cards: INDUSTRY,
       lead: 'O que a sua marca ganha quando vende para a rede, e não loja por loja.',
@@ -46,9 +43,6 @@ const AUD = {
     next: ['Sua marca pode ser a próxima história.', 'Falar com o comercial'],
   },
 }
-
-// Chave nova: quem testou a v1 tinha "industria" salvo e não veria o lojista como padrão.
-const readAud = () => { try { return localStorage.getItem('attini-aud-v2') || 'lojista' } catch { return 'lojista' } }
 
 function Preloader({ onDone }) {
   const ref = useRef(), num = useRef()
@@ -66,30 +60,6 @@ function Preloader({ onDone }) {
       <div className="pre-num"><span ref={num}>0</span><small>lojas conectadas</small></div>
       <div className="pre-bar"><i /></div>
     </div>
-  )
-}
-
-function Header({ aud }) {
-  const ref = useRef()
-  useEffect(() => {
-    const h = ({ direction, scroll }) => {
-      ref.current.classList.toggle('hide', direction === 1 && scroll > 200)
-      ref.current.classList.toggle('solid', scroll > 40)
-    }
-    lenis.on('scroll', h)
-    return () => lenis.off('scroll', h)
-  }, [])
-  return (
-    <header className="hdr" ref={ref}>
-      <a href="#topo" className="hdr-logo" aria-label="Rede Attini, voltar ao topo"><img src="/logo-attini.png" alt="Rede Attini" width="110" height="26" /></a>
-      <nav className="hdr-nav" aria-label="Seções">
-        {AUD[aud].nav.map(([h, l]) => <a key={h} href={h}>{l}</a>)}
-      </nav>
-      <div className="hdr-cta">
-        <AudSwitch aud={aud} className="aud-sm" go />
-        <a href="#contato" data-tab={aud} className="btn btn-y magnetic">{AUD[aud].cta}</a>
-      </div>
-    </header>
   )
 }
 
@@ -183,7 +153,7 @@ export default function App() {
   const [preset, setPreset] = useState(null)
   const A = AUD[aud]
 
-  useEffect(() => { try { localStorage.setItem('attini-aud-v2', aud) } catch {} }, [aud])
+  useEffect(() => saveAud(aud), [aud])
 
   // Qualquer elemento com data-aud/data-tab escolhe o público; data-interest pré-marca no formulário
   useEffect(() => {
@@ -404,23 +374,7 @@ export default function App() {
         <LeadForm tab={aud} setTab={setAud} preset={preset} />
       </main>
 
-      <footer className="ft">
-        <div className="ft-giant"><img src="/logo-attini-wordmark.png" alt="Attini" width="1556" height="350" /></div>
-        <div className="wrap ft-row">
-          <p>Construir é tornar real tudo aquilo que é sonho.</p>
-          <div className="ft-links">
-            <a href={`tel:+${WHATS}`}>{PHONE}</a>
-            <a href={SOCIAL.instagram} target="_blank" rel="noopener">Instagram</a>
-            <a href={SOCIAL.linkedin} target="_blank" rel="noopener">LinkedIn</a>
-            <a href={SOCIAL.facebook} target="_blank" rel="noopener">Facebook</a>
-          </div>
-          <p className="ft-copy">© {new Date().getFullYear()} Rede Attini</p>
-        </div>
-      </footer>
-
-      <a className="wa" href={`https://wa.me/${WHATS}?text=${encodeURIComponent('Olá, visitei o site Attini e gostaria de informações')}`} target="_blank" rel="noopener" aria-label="Conversar no WhatsApp">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.4-.9-2.8-1.2-4.6-4.1-4.8-4.3-.1-.2-1.1-1.5-1.1-2.9s.7-2.1 1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.3 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l2 .9c.3.1.5.2.5.3.1.2.1.7-.2 1.3Z" /></svg>
-      </a>
+      <Footer />
     </>
   )
 }

@@ -1,12 +1,5 @@
 /* Páginas públicas do blog: mesmo visual escuro do site */
-.bl-hdr { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px var(--pad); background: rgba(11, 11, 15, .82); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
-.bl-hdr nav { display: flex; align-items: center; gap: 24px; font-size: 14px; }
-.bl-hdr nav a:not(.btn) { opacity: .75; transition: opacity .3s; }
-.bl-hdr nav a:not(.btn):hover { opacity: 1; }
-.bl-hdr .btn { height: 42px; padding: 0 18px; font-size: 14px; }
-@media (max-width: 520px) { .bl-hdr nav a:not(.btn) { display: none; } }
-.bl { min-height: 70vh; }
-.bl-ft { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-block: 40px; border-top: 1px solid var(--line); color: var(--mute); font-size: 14px; }
+.bl { min-height: 70vh; padding-top: 80px; } /* espaço do cabeçalho fixo */
 .bl-empty { padding: 60px 0; color: var(--mute); }
 .bl-empty a { color: var(--y); }
 

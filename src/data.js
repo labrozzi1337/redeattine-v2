@@ -2,13 +2,7 @@ import geo from './geo.json'
 // Lojas associadas, tiradas do mapa do site oficial (WordPress, nov/2026): estado, cidade, nome e endereço.
 import storeList from './stores.json'
 
-export const PHONE = '(63) 3142.2061'
-export const WHATS = '556331422061'
-export const SOCIAL = {
-  instagram: 'https://www.instagram.com/redeattini/',
-  facebook: 'https://www.facebook.com/redeattini',
-  linkedin: 'https://br.linkedin.com/company/redeattini',
-}
+export { PHONE, WHATS, SOCIAL } from './Layout' // contatos ficam junto do cabeçalho/rodapé
 
 // Ordem do tour no mapa: maior presença primeiro.
 export const STATE_NAMES = { GO: 'Goiás', TO: 'Tocantins', PB: 'Paraíba', RN: 'Rio Grande do Norte', MG: 'Minas Gerais', PA: 'Pará', BA: 'Bahia', MA: 'Maranhão', MT: 'Mato Grosso', DF: 'Distrito Federal' }

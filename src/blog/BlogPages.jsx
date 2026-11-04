@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { listPosts, listCategories, getPost, listComments, addComment, trackView, postHref } from './api'
 import { sb } from '../supabase'
+import { Header, Footer, readAud, saveAud } from '../Layout'
 import './blog.css'
 
 const fmt = d => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -22,22 +23,26 @@ function setMeta(title, description) {
   m.content = description
 }
 
+// Mesmo cabeçalho e rodapé da home. Trocar "Sou lojista/indústria" ou clicar no CTA
+// guarda a escolha e leva para a seção certa da home.
 function Shell({ children }) {
+  const [aud, setAud] = useState(readAud)
+  useEffect(() => {
+    const h = e => {
+      const t = e.target.closest('[data-aud],[data-tab]')
+      if (!t) return
+      const a = t.dataset.aud || t.dataset.tab
+      saveAud(a); setAud(a)
+      if (t.dataset.go) location.href = '/' + t.dataset.go
+    }
+    document.addEventListener('click', h)
+    return () => document.removeEventListener('click', h)
+  }, [])
   return (
     <>
-      <header className="bl-hdr">
-        <a href="/" className="hdr-logo" aria-label="Rede Attini, página inicial"><img src="/logo-attini.png" alt="Rede Attini" width="110" height="26" /></a>
-        <nav>
-          <a href="/">Início</a>
-          <a href="/blog">Blog</a>
-          <a href="/#contato" className="btn btn-y">Quero ser Attini</a>
-        </nav>
-      </header>
+      <Header aud={aud} blog />
       <main className="bl">{children}</main>
-      <footer className="bl-ft wrap">
-        <p>Construir é tornar real tudo aquilo que é sonho.</p>
-        <p>© {new Date().getFullYear()} Rede Attini</p>
-      </footer>
+      <Footer blog />
     </>
   )
 }

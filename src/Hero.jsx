@@ -4,6 +4,7 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { sampleBrazil, isMobile, onVisible, reducedMotion } from './three-utils'
 import { TOTAL_CITIES, STORES, AREA } from './data'
+import { AudSwitch } from './Layout'
 
 const vert = /* glsl */ `
 uniform float uTime, uIntro, uMorph, uSize, uPR;
@@ -64,16 +65,6 @@ const COPY = {
   },
 }
 
-// go: depois de trocar, leva o visitante ao conteúdo do público (usado no header)
-export function AudSwitch({ aud, className = '', go }) {
-  return (
-    <div className={`aud ${className}`} role="radiogroup" aria-label="Você é">
-      <button role="radio" aria-checked={aud === 'lojista'} data-aud="lojista" data-go={go && '#lojista'}>Sou lojista</button>
-      <button role="radio" aria-checked={aud === 'industria'} data-aud="industria" data-go={go && '#industria'}>Sou indústria</button>
-      <i style={{ transform: `translateX(${aud === 'industria' ? 100 : 0}%)` }} />
-    </div>
-  )
-}
 
 export default function Hero({ aud }) {
   const root = useRef(), canvas = useRef(), first = useRef(true)
