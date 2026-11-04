@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { sb } from '../supabase'
-import { Icon, Toasts, toast, ROLES } from './ui'
+import { Icon, Toasts, toast, ROLES, call } from './ui'
 import Editor from './Editor'
 import { Dashboard, Posts, Media, Comments, Categories, Users, Profile } from './pages'
 
 // Rotas pelo # (ex.: /admin/#/posts): não exige configuração nenhuma na hospedagem.
 const useRoute = () => {
-  const read = () => /access_token|error=/.test(location.hash) ? '/' : location.hash.slice(1).split('?')[0] || '/'
+  const read = () => location.hash.slice(1).split('?')[0] || '/'
   const [r, setR] = useState(read)
   useEffect(() => { const h = () => setR(read()); addEventListener('hashchange', h); return () => removeEventListener('hashchange', h) }, [])
   return r
@@ -14,22 +13,19 @@ const useRoute = () => {
 
 const Brand = () => <div className="brand"><img src="/logo-attini.png" alt="Rede Attini" /><span>Blog</span></div>
 
-function Login() {
+function Login({ onIn }) {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState(window.__authError ? 'Esse link expirou ou já foi usado. Peça um novo convite ou clique em "Esqueci minha senha".' : '')
+  const [msg, setMsg] = useState('')
   const submit = async e => {
     e.preventDefault(); setBusy(true); setMsg('')
-    if (mode === 'login') {
-      const { error } = await sb.auth.signInWithPassword({ email, password: pw })
-      if (error) setMsg(error.message.includes('Invalid') ? 'E-mail ou senha incorretos.' : error.message)
-    } else {
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/admin/' })
-      setMsg(error ? error.message : 'Se esse e-mail tiver acesso, enviamos um link para criar uma nova senha.')
-    }
-    setBusy(false)
+    try {
+      if (mode === 'login') return onIn((await call('/auth/login', { method: 'POST', body: { email, password: pw } })).user)
+      const r = await call('/auth/forgot', { method: 'POST', body: { email } })
+      setMsg(r.mail ? 'Se esse e-mail tiver acesso, enviamos um link para criar uma nova senha.' : 'O envio de e-mail ainda não está ativo. Peça a um administrador um link de nova senha (Usuários → Nova senha).')
+    } catch (err) { setMsg(err.message) } finally { setBusy(false) }
   }
   return (
     <div className="auth">
@@ -48,7 +44,10 @@ function Login() {
   )
 }
 
-function SetPassword({ invited, onDone }) {
+// Página do link de convite / nova senha: /admin/#/senha?token=...&tipo=convite|nova
+function SetPassword({ onIn }) {
+  const q = new URLSearchParams(location.hash.split('?')[1])
+  const invited = q.get('tipo') === 'convite'
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [msg, setMsg] = useState('')
@@ -56,9 +55,10 @@ function SetPassword({ invited, onDone }) {
     e.preventDefault()
     if (pw.length < 8) return setMsg('Use pelo menos 8 caracteres.')
     if (pw !== pw2) return setMsg('As senhas não são iguais.')
-    const { error } = await sb.auth.updateUser({ password: pw })
-    if (error) return setMsg(error.message)
-    toast('Senha criada. Bem-vindo(a)!'); onDone()
+    try {
+      const { user } = await call('/auth/password', { method: 'POST', body: { token: q.get('token'), password: pw } })
+      history.replaceState(null, '', '/admin/#/'); toast('Senha criada. Bem-vindo(a)!'); onIn(user)
+    } catch (err) { setMsg(err.message) }
   }
   return (
     <div className="auth">
@@ -84,10 +84,7 @@ function Shell({ me, setMe }) {
   useEffect(() => {
     setOpen(false)
     if (!pub) return
-    Promise.all([
-      sb.from('posts').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      sb.from('comments').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-    ]).then(([p, c]) => setBadge({ '/posts': p.count, '/comentarios': c.count }))
+    call('/admin/counts').then(c => setBadge({ '/posts': c.posts, '/comentarios': c.comments })).catch(() => {})
   }, [route])
 
   const nav = [
@@ -124,7 +121,7 @@ function Shell({ me, setMe }) {
         <div className="side-foot" onClick={guard}>
           <a href="/" target="_blank" rel="noopener"><Icon n="external" />Ver o site</a>
           <a href="#/perfil" className={route === '/perfil' ? 'on' : ''}><Icon n="user" /><span>{me.name}<small>{ROLES[me.role]}</small></span></a>
-          <button onClick={() => sb.auth.signOut()}><Icon n="logout" />Sair</button>
+          <button onClick={() => call('/auth/logout', { method: 'POST' }).finally(() => setMe(null))}><Icon n="logout" />Sair</button>
         </div>
       </aside>
       <div className="main">
@@ -137,31 +134,20 @@ function Shell({ me, setMe }) {
 }
 
 export default function Admin() {
-  const [session, setSession] = useState()
-  const [me, setMe] = useState(null)
-  // Links de convite e de nova senha chegam com type=invite|recovery (capturado no admin/index.html)
-  const [setPw, setSetPw] = useState(['invite', 'recovery'].includes(window.__authType) ? window.__authType : null)
+  const [me, setMe] = useState()
+  const [link, setLink] = useState(() => location.hash.startsWith('#/senha'))
 
   useEffect(() => {
-    if (!sb) return
-    sb.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = sb.auth.onAuthStateChange((ev, s) => {
-      setSession(s)
-      if (ev === 'PASSWORD_RECOVERY') setSetPw('recovery')
-    })
-    return () => subscription.unsubscribe()
+    call('/auth/me').then(r => setMe(r.user)).catch(() => setMe(null))
+    // Sessão expirou no meio do uso: volta para o login
+    const out = () => setMe(null)
+    addEventListener('adm-logout', out)
+    return () => removeEventListener('adm-logout', out)
   }, [])
 
-  useEffect(() => {
-    if (!session) return setMe(null)
-    sb.from('profiles').select('*').eq('id', session.user.id).single().then(({ data }) => setMe(data || false))
-  }, [session?.user.id])
-
-  if (!sb) return <div className="auth"><div className="auth-card"><Brand /><h1>Blog não configurado</h1><p className="muted">Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY e gere o site de novo. O passo a passo está no README.</p></div></div>
-  if (session === undefined) return <div className="auth"><Brand /></div>
-  if (!session) return <><Login /><Toasts /></>
-  if (setPw) return <><SetPassword invited={setPw === 'invite'} onDone={() => { setSetPw(null); history.replaceState(null, '', '/admin/#/') }} /><Toasts /></>
-  if (me === null) return <div className="auth"><Brand /></div>
-  if (me === false) return <div className="auth"><div className="auth-card"><Brand /><h1>Sem acesso</h1><p className="muted">Seu login não tem perfil no blog. Peça a um administrador.</p><button className="btn-s" onClick={() => sb.auth.signOut()}>Sair</button></div></div>
+  const onIn = user => { setLink(false); setMe(user) }
+  if (link) return <><SetPassword onIn={onIn} /><Toasts /></>
+  if (me === undefined) return <div className="auth"><Brand /></div>
+  if (!me) return <><Login onIn={onIn} /><Toasts /></>
   return <><Shell me={me} setMe={setMe} /><Toasts /></>
 }

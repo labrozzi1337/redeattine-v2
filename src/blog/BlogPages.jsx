@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import DOMPurify from 'dompurify'
 import { listPosts, listCategories, getPost, listComments, addComment, trackView, postHref } from './api'
-import { sb } from '../supabase'
 import { Header, Footer, readAud, saveAud } from '../Layout'
 import './blog.css'
 
@@ -98,8 +97,7 @@ function BlogList() {
           {cats.map(c => <a key={c.id} href={`/blog?categoria=${c.slug}`} className={cat?.id === c.id ? 'on' : ''}>{c.name}</a>)}
         </nav>
       )}
-      {!sb ? <p className="bl-empty">O blog ainda não foi conectado.</p>
-        : posts === null ? <p className="bl-empty">Carregando…</p>
+      {posts === null ? <p className="bl-empty">Carregando…</p>
         : !posts.length ? <p className="bl-empty">Nenhum post encontrado. <a href="/blog">Ver todos</a></p>
         : (
           <>
@@ -117,21 +115,19 @@ function Comments({ post }) {
   const [reply, setReply] = useState(null)
   const [form, setForm] = useState({ name: '', email: '', content: '', site: '' })
   const [state, setState] = useState('')
-  useEffect(() => { listComments(post.id).then(setList) }, [post.id])
+  useEffect(() => { listComments(post.slug).then(setList) }, [post.slug])
 
   const send = async e => {
     e.preventDefault()
-    if (form.site) return // robô preencheu o campo escondido
     setState('enviando')
-    const { error } = await addComment(post.id, reply?.id || null, form.name, form.email, form.content)
-    if (error) return setState('erro:' + error.message)
+    try { await addComment(post.slug, reply?.id || null, form.name, form.email, form.content, form.site) } catch (err) { return setState('erro:' + err.message) }
     setForm({ name: '', email: '', content: '', site: '' }); setReply(null); setState('ok')
   }
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
   const roots = list.filter(c => !c.parent_id)
   const One = ({ c }) => (
-    <li className={c.user_id ? 'team' : ''}>
-      <p className="bl-c-who"><b>{c.author_name}</b>{c.user_id && <span>Rede Attini</span>}<time>{fmt(c.created_at)}</time></p>
+    <li className={c.team ? 'team' : ''}>
+      <p className="bl-c-who"><b>{c.author_name}</b>{c.team && <span>Rede Attini</span>}<time>{fmt(c.created_at)}</time></p>
       <p className="bl-c-txt">{c.content}</p>
       {!c.parent_id && <button className="bl-c-reply" onClick={() => { setReply(c); document.getElementById('comentar').scrollIntoView({ behavior: 'smooth' }) }}>Responder</button>}
       {list.some(x => x.parent_id === c.id) && <ul>{list.filter(x => x.parent_id === c.id).map(x => <One key={x.id} c={x} />)}</ul>}

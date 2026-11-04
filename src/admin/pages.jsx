@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { sb } from '../supabase'
-import { Icon, Switch, Badge, Modal, toast, uploadImage, slugify, statusOf, fmtDate, fmtDateTime, fmtN, ROLES, ROLE_HINT } from './ui'
+import { Icon, Switch, Badge, Modal, toast, uploadImage, statusOf, fmtDate, fmtDateTime, fmtN, ROLES, ROLE_HINT, call } from './ui'
 
 const Head = ({ title, sub, children }) => (
   <div className="page-head"><div><h1>{title}</h1>{sub && <p>{sub}</p>}</div>{children && <div className="page-actions">{children}</div>}</div>
@@ -29,10 +28,10 @@ export function Dashboard({ me }) {
   const [s, setS] = useState(null)
   const [posts, setPosts] = useState([])
   const [pendingC, setPendingC] = useState(0)
-  useEffect(() => { setS(null); sb.rpc('blog_stats', { p_days: days }).then(({ data }) => setS(data)) }, [days])
+  useEffect(() => { setS(null); call('/admin/stats?days=' + days).then(setS).catch(e => toast(e.message, true)) }, [days])
   useEffect(() => {
-    sb.from('posts').select('id, title, slug, status, published_at, updated_at, author_id').order('updated_at', { ascending: false }).then(({ data }) => setPosts(data || []))
-    sb.from('comments').select('id', { count: 'exact', head: true }).eq('status', 'pending').then(({ count }) => setPendingC(count || 0))
+    call('/admin/posts').then(setPosts).catch(() => {})
+    call('/admin/counts').then(c => setPendingC(c.comments)).catch(() => {})
   }, [])
 
   const byId = Object.fromEntries(posts.map(p => [p.id, p]))
@@ -104,12 +103,11 @@ export function Posts({ me }) {
   const [cat, setCat] = useState('')
   const pub = me.role !== 'author'
 
-  const load = () => sb.from('posts').select('id, slug, title, status, published_at, updated_at, cover_url, author_name, author_id, category_id, show_home, show_stories, featured')
-    .order('updated_at', { ascending: false }).then(({ data }) => setRows(data || []))
+  const load = () => call('/admin/posts').then(setRows).catch(e => toast(e.message, true))
   useEffect(() => {
     load()
-    sb.from('categories').select('id, name').order('name').then(({ data }) => setCats(data || []))
-    sb.rpc('blog_stats', { p_days: 30 }).then(({ data }) => setViews(Object.fromEntries((data?.posts || []).map(p => [p.id, p.views]))))
+    call('/categories').then(setCats).catch(() => {})
+    call('/admin/stats?days=30').then(d => setViews(Object.fromEntries(d.posts.map(p => [p.id, p.views])))).catch(() => {})
   }, [])
 
   if (!rows) return <div className="page"><p className="empty">Carregando…</p></div>
@@ -120,20 +118,18 @@ export function Posts({ me }) {
 
   const toggle = async (r, k) => {
     setRows(rs => rs.map(x => x.id === r.id ? { ...x, [k]: !r[k] } : x))
-    const { error } = await sb.from('posts').update({ [k]: !r[k] }).eq('id', r.id)
-    if (error) { toast(error.message, true); load() } else toast(!r[k] ? 'Vai aparecer no site.' : 'Saiu dessa seção do site.')
+    try { await call('/admin/posts/' + r.id, { method: 'PATCH', body: { [k]: !r[k] } }); toast(!r[k] ? 'Vai aparecer no site.' : 'Saiu dessa seção do site.') }
+    catch (err) { toast(err.message, true); load() }
   }
   const duplicate = async r => {
-    const { data: full } = await sb.from('posts').select('*').eq('id', r.id).single()
-    const { id, created_at, updated_at, updated_by, legacy_id, legacy_url, author_id, ...rest } = full
-    const { data, error } = await sb.from('posts').insert({ ...rest, title: 'Cópia de ' + full.title, slug: `${full.slug}-copia-${Date.now().toString(36).slice(-4)}`, status: 'draft', published_at: null, author_id: me.id }).select('id').single()
-    if (error) return toast(error.message, true)
-    toast('Cópia criada como rascunho.'); location.hash = '/posts/' + data.id
+    try {
+      const data = await call(`/admin/posts/${r.id}/duplicate`, { method: 'POST' })
+      toast('Cópia criada como rascunho.'); location.hash = '/posts/' + data.id
+    } catch (err) { toast(err.message, true) }
   }
   const remove = async r => {
     if (!confirm(`Excluir "${r.title}" definitivamente?`)) return
-    const { error } = await sb.from('posts').delete().eq('id', r.id)
-    if (error) return toast(error.message, true)
+    try { await call('/admin/posts/' + r.id, { method: 'DELETE' }) } catch (err) { return toast(err.message, true) }
     setRows(rs => rs.filter(x => x.id !== r.id)); toast('Post excluído.')
   }
 
@@ -208,7 +204,7 @@ function Uploader({ onDone, compact }) {
 
 const useMedia = () => {
   const [items, setItems] = useState(null)
-  const load = () => sb.from('media').select('*').order('created_at', { ascending: false }).then(({ data }) => setItems(data || []))
+  const load = () => call('/admin/media').then(setItems).catch(e => toast(e.message, true))
   useEffect(() => { load() }, [])
   return [items, setItems]
 }
@@ -233,7 +229,7 @@ export function MediaPicker({ onPick, onClose }) {
               <img src={sel.url} alt="" />
               <label className="fld"><span>Descrição da imagem</span><input value={alt} onChange={e => setAlt(e.target.value)} placeholder="O que aparece na foto?" /></label>
               <button className="btn-p" onClick={async () => {
-                if (alt !== sel.alt) await sb.from('media').update({ alt }).eq('id', sel.id)
+                if (alt !== sel.alt) await call('/admin/media/' + sel.id, { method: 'PATCH', body: { alt } }).catch(() => {})
                 onPick({ ...sel, alt })
               }}>Usar esta imagem</button>
             </>
@@ -251,15 +247,13 @@ export function Media({ me }) {
   useEffect(() => {
     if (!sel) return
     setUses(null)
-    sb.from('posts').select('id, title').or(`cover_url.eq."${sel.url}",content.ilike."%${sel.path}%"`).then(({ data }) => setUses(data || []))
+    call('/admin/media/' + sel.id).then(setUses).catch(() => setUses([]))
   }, [sel?.id])
 
-  const saveAlt = async alt => { await sb.from('media').update({ alt }).eq('id', sel.id); setItems(i => i.map(x => x.id === sel.id ? { ...x, alt } : x)); toast('Descrição salva.') }
+  const saveAlt = async alt => { await call('/admin/media/' + sel.id, { method: 'PATCH', body: { alt } }); setItems(i => i.map(x => x.id === sel.id ? { ...x, alt } : x)); toast('Descrição salva.') }
   const remove = async () => {
     if (!confirm(uses?.length ? `Esta imagem está em ${uses.length} post(s) e vai sumir de lá. Excluir mesmo assim?` : 'Excluir esta imagem?')) return
-    const { error } = await sb.storage.from('media').remove([sel.path])
-    if (error) return toast(error.message, true)
-    await sb.from('media').delete().eq('id', sel.id)
+    try { await call('/admin/media/' + sel.id, { method: 'DELETE' }) } catch (err) { return toast(err.message, true) }
     setItems(i => i.filter(x => x.id !== sel.id)); setSel(null); toast('Imagem excluída.')
   }
   const canDelete = sel && (me.role !== 'author' || sel.uploaded_by === me.id)
@@ -310,23 +304,21 @@ export function Comments({ me }) {
   const [rows, setRows] = useState(null)
   const [reply, setReply] = useState(null)
   const [text, setText] = useState('')
-  const load = () => sb.from('comments').select('*, post:posts(id, title, slug)').eq('status', tab).order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
+  const load = () => call('/admin/comments?status=' + tab).then(setRows).catch(e => toast(e.message, true))
   useEffect(() => { setRows(null); load() }, [tab])
 
   const setStatus = async (c, status) => {
-    const { error } = await sb.from('comments').update({ status }).eq('id', c.id)
-    if (error) return toast(error.message, true)
+    try { await call('/admin/comments/' + c.id, { method: 'PATCH', body: { status } }) } catch (err) { return toast(err.message, true) }
     setRows(r => r.filter(x => x.id !== c.id)); toast(status === 'approved' ? 'Comentário aprovado. Já aparece no site.' : status === 'spam' ? 'Marcado como spam.' : 'Voltou para pendentes.')
   }
   const remove = async c => {
     if (!confirm('Excluir este comentário?')) return
-    await sb.from('comments').delete().eq('id', c.id); setRows(r => r.filter(x => x.id !== c.id)); toast('Comentário excluído.')
+    await call('/admin/comments/' + c.id, { method: 'DELETE' }).catch(e => toast(e.message, true)); setRows(r => r.filter(x => x.id !== c.id)); toast('Comentário excluído.')
   }
   const sendReply = async c => {
     if (text.trim().length < 2) return
-    const { error } = await sb.from('comments').insert({ post_id: c.post_id, parent_id: c.parent_id || c.id, author_name: me.name, content: text.trim(), status: 'approved', user_id: me.id })
-    if (error) return toast(error.message, true)
-    if (c.status === 'pending') await setStatus(c, 'approved')
+    try { await call('/admin/comments', { method: 'POST', body: { reply_to: c.id, content: text.trim() } }) } catch (err) { return toast(err.message, true) }
+    if (c.status === 'pending') setRows(r => r.filter(x => x.id !== c.id)) // a resposta já aprova o comentário
     setReply(null); setText(''); toast('Resposta publicada.')
   }
 
@@ -364,24 +356,23 @@ export function Comments({ me }) {
 export function Categories() {
   const [rows, setRows] = useState(null)
   const [name, setName] = useState('')
-  const load = () => sb.from('categories').select('id, name, slug, posts(count)').order('name').then(({ data }) => setRows(data || []))
+  const load = () => call('/admin/categories').then(setRows).catch(e => toast(e.message, true))
   useEffect(() => { load() }, [])
   const add = async e => {
     e.preventDefault()
     if (!name.trim()) return
-    const { error } = await sb.from('categories').insert({ name: name.trim(), slug: slugify(name) })
-    if (error) return toast(error.code === '23505' ? 'Essa categoria já existe.' : error.message, true)
-    setName(''); load(); toast('Categoria criada.')
+    try { await call('/admin/categories', { method: 'POST', body: { name } }); setName(''); load(); toast('Categoria criada.') }
+    catch (err) { toast(err.status === 409 ? 'Essa categoria já existe.' : err.message, true) }
   }
   const rename = async c => {
     const n = prompt('Novo nome da categoria:', c.name)
     if (!n?.trim() || n === c.name) return
-    const { error } = await sb.from('categories').update({ name: n.trim(), slug: slugify(n) }).eq('id', c.id)
-    error ? toast(error.message, true) : (load(), toast('Categoria renomeada.'))
+    try { await call('/admin/categories/' + c.id, { method: 'PATCH', body: { name: n } }); load(); toast('Categoria renomeada.') }
+    catch (err) { toast(err.status === 409 ? 'Já existe uma categoria com esse nome.' : err.message, true) }
   }
   const remove = async c => {
-    if (!confirm(`Excluir "${c.name}"? Os ${c.posts[0].count} post(s) dela ficam sem categoria.`)) return
-    await sb.from('categories').delete().eq('id', c.id); load(); toast('Categoria excluída.')
+    if (!confirm(`Excluir "${c.name}"? Os ${c.posts} post(s) dela ficam sem categoria.`)) return
+    await call('/admin/categories/' + c.id, { method: 'DELETE' }).catch(e => toast(e.message, true)); load(); toast('Categoria excluída.')
   }
   return (
     <div className="page narrow">
@@ -391,7 +382,7 @@ export function Categories() {
         <div className="card flush">
           <table className="tbl"><thead><tr><th>Categoria</th><th className="num">Posts</th><th /></tr></thead>
             <tbody>{rows.map(c => (
-              <tr key={c.id}><td><b>{c.name}</b><small className="muted"> /blog?categoria={c.slug}</small></td><td className="num">{c.posts[0].count}</td>
+              <tr key={c.id}><td><b>{c.name}</b><small className="muted"> /blog?categoria={c.slug}</small></td><td className="num">{c.posts}</td>
                 <td className="row-actions"><button className="link-btn" onClick={() => rename(c)}>Renomear</button><button className="icon-btn danger" onClick={() => remove(c)} aria-label="Excluir"><Icon n="trash" s={16} /></button></td></tr>
             ))}</tbody></table>
         </div>
@@ -401,36 +392,51 @@ export function Categories() {
 }
 
 // ------------------------------------------------------------------ Usuários
-async function callUsers(body) {
-  const { data, error } = await sb.functions.invoke('admin-users', { body })
-  if (error) { const msg = await error.context?.json?.().then(j => j.error).catch(() => null); throw new Error(msg || error.message) }
-  return data
+// Convite e nova senha geram um link. Com e-mail configurado ele também vai por e-mail;
+// sem e-mail, o administrador copia e manda (WhatsApp, por exemplo).
+function LinkBox({ info, onClose }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <Modal title={info.title} onClose={onClose}>
+      <div className="linkbox">
+        <p>{info.emailed ? `Enviamos o link por e-mail para ${info.email}. Se preferir, copie e mande por outro canal:` : `Copie o link e mande para ${info.name} (por WhatsApp, por exemplo). Ele vale ${info.days}.`}</p>
+        <input readOnly value={info.link} onFocus={e => e.target.select()} />
+        <button className="btn-p" onClick={() => navigator.clipboard.writeText(info.link).then(() => setCopied(true))}><Icon n="copy" s={16} /> {copied ? 'Link copiado' : 'Copiar link'}</button>
+      </div>
+    </Modal>
+  )
 }
 
 export function Users({ me }) {
   const [rows, setRows] = useState(null)
   const [inv, setInv] = useState({ name: '', email: '', role: 'author' })
   const [busy, setBusy] = useState(false)
-  const load = () => sb.from('profiles').select('*').order('created_at').then(({ data }) => setRows(data || []))
+  const [linkInfo, setLinkInfo] = useState(null)
+  const load = () => call('/admin/users').then(setRows).catch(e => toast(e.message, true))
   useEffect(() => { load() }, [])
 
   const invite = async e => {
     e.preventDefault(); setBusy(true)
-    try { await callUsers({ action: 'invite', ...inv, redirectTo: location.origin + '/admin/' }); toast(`Convite enviado para ${inv.email}.`); setInv({ name: '', email: '', role: 'author' }); load() } catch (err) { toast(err.message, true) }
+    try {
+      const r = await call('/admin/users', { method: 'POST', body: inv })
+      setLinkInfo({ ...r, title: 'Convite criado', name: inv.name, email: inv.email, days: 'por 7 dias' })
+      setInv({ name: '', email: '', role: 'author' }); load()
+    } catch (err) { toast(err.message, true) }
     setBusy(false)
   }
   const setRole = async (u, role) => {
-    const { error } = await sb.from('profiles').update({ role }).eq('id', u.id)
-    error ? toast(error.message, true) : toast(`${u.name} agora é ${ROLES[role]}.`)
+    try { await call('/admin/users/' + u.id, { method: 'PATCH', body: { role } }); toast(`${u.name} agora é ${ROLES[role]}.`) } catch (err) { toast(err.message, true) }
     load()
   }
   const remove = async u => {
     if (!confirm(`Remover o acesso de ${u.name}? Os posts dele continuam no blog.`)) return
-    try { await callUsers({ action: 'delete', id: u.id }); toast('Acesso removido.'); load() } catch (err) { toast(err.message, true) }
+    try { await call('/admin/users/' + u.id, { method: 'DELETE' }); toast('Acesso removido.'); load() } catch (err) { toast(err.message, true) }
   }
-  const reset = async u => {
-    const { error } = await sb.auth.resetPasswordForEmail(u.email, { redirectTo: location.origin + '/admin/' })
-    error ? toast(error.message, true) : toast(`Enviamos um link de nova senha para ${u.email}.`)
+  const newLink = async u => {
+    try {
+      const r = await call(`/admin/users/${u.id}/link`, { method: 'POST' })
+      setLinkInfo({ ...r, title: u.pending ? 'Novo link de convite' : 'Link de nova senha', name: u.name, email: u.email, days: u.pending ? 'por 7 dias' : 'por 24 horas' })
+    } catch (err) { toast(err.message, true) }
   }
 
   return (
@@ -442,26 +448,27 @@ export function Users({ me }) {
           <input required placeholder="Nome" value={inv.name} onChange={e => setInv({ ...inv, name: e.target.value })} />
           <input required type="email" placeholder="E-mail" value={inv.email} onChange={e => setInv({ ...inv, email: e.target.value })} />
           <select value={inv.role} onChange={e => setInv({ ...inv, role: e.target.value })}>{Object.entries(ROLES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-          <button className="btn-p" disabled={busy}>{busy ? 'Enviando…' : 'Enviar convite'}</button>
+          <button className="btn-p" disabled={busy}>{busy ? 'Criando…' : 'Convidar'}</button>
         </div>
-        <small className="muted">{ROLE_HINT[inv.role]} A pessoa recebe um e-mail para criar a senha.</small>
+        <small className="muted">{ROLE_HINT[inv.role]} A pessoa recebe um link para criar a senha.</small>
       </form>
       {rows && (
         <div className="card flush">
-          <table className="tbl"><thead><tr><th>Pessoa</th><th>Papel</th><th className="hide-m">Desde</th><th /></tr></thead>
+          <table className="tbl"><thead><tr><th>Pessoa</th><th>Papel</th><th className="hide-m">Último acesso</th><th /></tr></thead>
             <tbody>{rows.map(u => (
               <tr key={u.id}>
-                <td><b>{u.name}</b>{u.id === me.id && <span className="badge mute">você</span>}<small className="muted block">{u.email}</small></td>
+                <td><b>{u.name}</b>{u.id === me.id && <span className="badge mute">você</span>}{u.pending && <span className="badge warn">convite pendente</span>}<small className="muted block">{u.email}</small></td>
                 <td><select value={u.role} onChange={e => setRole(u, e.target.value)} disabled={u.id === me.id} title={ROLE_HINT[u.role]}>{Object.entries(ROLES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></td>
-                <td className="hide-m muted">{fmtDate(u.created_at)}</td>
+                <td className="hide-m muted">{u.last_login_at ? fmtDate(u.last_login_at) : '—'}</td>
                 <td className="row-actions">
-                  <button className="link-btn" onClick={() => reset(u)}>Nova senha</button>
+                  <button className="link-btn" onClick={() => newLink(u)}>{u.pending ? 'Reenviar convite' : 'Nova senha'}</button>
                   {u.id !== me.id && <button className="icon-btn danger" onClick={() => remove(u)} aria-label="Remover acesso" title="Remover acesso"><Icon n="trash" s={16} /></button>}
                 </td>
               </tr>
             ))}</tbody></table>
         </div>
       )}
+      {linkInfo && <LinkBox info={linkInfo} onClose={() => setLinkInfo(null)} />}
     </div>
   )
 }
@@ -469,18 +476,15 @@ export function Users({ me }) {
 // ------------------------------------------------------------------ Perfil
 export function Profile({ me, setMe }) {
   const [name, setName] = useState(me.name)
-  const [pw, setPw] = useState('')
+  const [pw, setPw] = useState({ current: '', password: '' })
   const saveName = async e => {
     e.preventDefault()
-    const { error } = await sb.from('profiles').update({ name }).eq('id', me.id)
-    if (error) return toast(error.message, true)
-    setMe({ ...me, name }); toast('Nome atualizado.')
+    try { await call('/admin/me', { method: 'PATCH', body: { name } }); setMe({ ...me, name }); toast('Nome atualizado.') } catch (err) { toast(err.message, true) }
   }
   const savePw = async e => {
     e.preventDefault()
-    if (pw.length < 8) return toast('Use pelo menos 8 caracteres.', true)
-    const { error } = await sb.auth.updateUser({ password: pw })
-    error ? toast(error.message, true) : (setPw(''), toast('Senha alterada.'))
+    if (pw.password.length < 8) return toast('Use pelo menos 8 caracteres.', true)
+    try { await call('/admin/me', { method: 'POST', body: pw }); setPw({ current: '', password: '' }); toast('Senha alterada.') } catch (err) { toast(err.message, true) }
   }
   return (
     <div className="page narrow">
@@ -490,7 +494,8 @@ export function Profile({ me, setMe }) {
         <button className="btn-p">Salvar nome</button>
       </form>
       <form className="card form" onSubmit={savePw}>
-        <label className="fld"><span>Nova senha</span><input type="password" autoComplete="new-password" value={pw} onChange={e => setPw(e.target.value)} placeholder="Mínimo de 8 caracteres" /></label>
+        <label className="fld"><span>Senha atual</span><input type="password" autoComplete="current-password" value={pw.current} onChange={e => setPw({ ...pw, current: e.target.value })} /></label>
+        <label className="fld"><span>Nova senha</span><input type="password" autoComplete="new-password" value={pw.password} onChange={e => setPw({ ...pw, password: e.target.value })} placeholder="Mínimo de 8 caracteres" /></label>
         <button className="btn-p">Alterar senha</button>
       </form>
     </div>

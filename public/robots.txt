@@ -1,5 +1,5 @@
 User-agent: *
 Disallow: /admin/
+Disallow: /api/
 
-# Depois de criar o projeto no Supabase, troque SEU-PROJETO pelo id dele:
-Sitemap: https://SEU-PROJETO.supabase.co/functions/v1/sitemap
+Sitemap: https://www.redeattini.com.br/sitemap.xml

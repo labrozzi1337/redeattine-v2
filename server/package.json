@@ -8,7 +8,8 @@
     "start": "next start",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.js",
     "db:seed": "node --env-file-if-exists=.env.local scripts/seed.js",
-    "db:admin": "node --env-file-if-exists=.env.local scripts/create-admin.js"
+    "db:admin": "node --env-file-if-exists=.env.local scripts/create-admin.js",
+    "wp:import": "node --env-file-if-exists=.env.local scripts/import-wordpress.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
@@ -17,5 +18,8 @@
     "postgres": "^3.4.7",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
   }
 }

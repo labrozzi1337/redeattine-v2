@@ -1,7 +1,16 @@
 # Rede Attini — site e blog
 
 Home da Rede Attini (lojista e indústria), blog público e painel do blog.
-Vite + React + Three.js + GSAP + Lenis no site; Supabase (banco, login, imagens) no blog.
+
+| Parte | Tecnologia | Pasta |
+|---|---|---|
+| Front (site, blog e painel) | Vite + React + Three.js + GSAP + Lenis | raiz (`src/`, `admin/`) |
+| Back-end (toda a lógica) | Next.js 16 (só rotas `/api`) | `server/` |
+| Banco (só dados) | Postgres do Supabase, schema `SYS_SITE_ATTINI` | `server/db/` |
+| Imagens do blog | Supabase Storage, bucket `site-attini` | — |
+
+O banco não tem funções, gatilhos nem regras: permissões, revisões, números e validações ficam no back-end.
+O navegador nunca fala com o Supabase; tudo passa por `/api` no próprio domínio do site.
 
 | Endereço | O que é |
 |---|---|
@@ -9,19 +18,73 @@ Vite + React + Three.js + GSAP + Lenis no site; Supabase (banco, login, imagens)
 | `/blog`, `/blog/<endereco>` | Blog público (busca, categorias, comentários) |
 | `/2024/03/<endereco>/` | Endereços antigos do WordPress: abrem o mesmo post |
 | `/admin/` | Painel do blog (login) |
+| `/sitemap.xml` | Mapa do site para o Google (gerado pelo back-end) |
+
+## Rodar na sua máquina
+
+Precisa do Docker aberto (o Supabase local faz o papel do banco e do Storage).
 
 ```bash
+npx supabase start                 # Postgres e Storage locais (portas 553xx)
+cd server
+cp .env.example .env.local         # e ajuste para o local (veja abaixo)
 npm install
-npm run dev      # http://localhost:5173  e  http://localhost:5173/admin/
-npm run build    # gera dist/ (site estático)
-node cnpj.check.mjs
+npm run db:migrate                 # cria o schema SYS_SITE_ATTINI e as tabelas
+npm run db:seed                    # carrega os 40 posts migrados do WordPress, com imagens e comentários
+npm run db:admin -- seu@email.com.br "Seu Nome"   # cria o administrador e mostra o link para criar a senha
+npm run dev                        # back-end em http://localhost:3001
+cd ..
+npm install
+npm run dev                        # site em http://localhost:5173 e painel em /admin/
 ```
 
-## Versões
+`server/.env.local` local: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55322/postgres`,
+`SUPABASE_URL=http://127.0.0.1:55321`, `SUPABASE_SECRET_KEY` = a `SERVICE_ROLE_KEY` que o `supabase start` mostra,
+`SESSION_SECRET` qualquer texto longo e `SITE_URL=http://localhost:5173`.
 
-- **v1**: tag `v1` (`git checkout v1`). Primeira versão apresentada.
-- **v2**: apontamentos de nov/2026 (lojista como padrão, faixa de impacto, mapa direto, Histórias da rede, logos).
-- **Blog próprio**: substitui o WordPress (este documento).
+## Colocar no ar (Vercel)
+
+1. **Banco**: em `server/.env.local`, coloque a `DATABASE_URL` do projeto (Direct connection ou Session pooler),
+   `SUPABASE_URL` e `SUPABASE_SECRET_KEY`. Depois, dentro de `server/`:
+   ```bash
+   npm run db:migrate     # cria o schema SYS_SITE_ATTINI
+   npm run db:seed        # posts, imagens (bucket site-attini) e comentários
+   npm run db:admin -- seu@email.com.br "Seu Nome"
+   ```
+   Sem conexão local? Dá para colar `server/db/001_blog.sql` no SQL Editor do Supabase. O seed e o admin,
+   porém, precisam rodar por aqui.
+2. **Back-end**: novo projeto na Vercel com *Root Directory* = `server`. Variáveis: as de `server/.env.example`
+   (na Vercel, a `DATABASE_URL` do *Transaction pooler*, porta 6543). Nome sugerido: `attini-site-api`.
+3. **Front**: outro projeto na Vercel com a raiz do repositório. O `vercel.json` manda `/api` e `/sitemap.xml`
+   para `https://attini-site-api.vercel.app`. **Se o projeto do back-end tiver outro endereço, troque nesse arquivo.**
+   O front não precisa de variáveis.
+4. **Domínio**: `www.redeattini.com.br` no projeto do front. Coloque o mesmo em `SITE_URL` no back-end.
+5. **E-mail (opcional)**: com `SMTP_URL`, convites e "esqueci a senha" saem por e-mail. Sem ele, o painel mostra
+   o link para o administrador copiar e mandar.
+6. **Google**: envie `https://www.redeattini.com.br/sitemap.xml` no Search Console.
+
+## Rotas do back-end
+
+- **Públicas**:
+  - `GET /api/posts` (filtros `home`, `stories`, `category`, `q`);
+  - `GET /api/posts/:slug`;
+  - `GET|POST /api/posts/:slug/comments`;
+  - `POST /api/posts/:slug/view`;
+  - `GET /api/categories`;
+  - `GET /api/sitemap`.
+- **Login**: `/api/auth/login`, `logout`, `me`, `forgot` e `password` (criar senha pelo link).
+- **Painel** (`/api/admin/...`):
+  - `posts`, com revisões e duplicar;
+  - `media`, `categories`, `comments`, `users`, com convite e link de nova senha;
+  - `me`, `stats` e `counts`.
+
+Segurança:
+
+- **Senhas:** guardadas com scrypt.
+- **Sessão:** cookie assinado, `HttpOnly`, `SameSite=Lax`, restrito a `/api`.
+- **Tentativas de login:** 5 erros bloqueiam a conta por 15 minutos.
+- **Origem dos pedidos:** alterações vindas de outros sites são recusadas.
+- **Permissões:** o papel é conferido no banco a cada pedido.
 
 ## O painel do blog
 
@@ -32,8 +95,8 @@ Papéis:
 - **Autor**: escreve os próprios posts e envia para revisão. Não publica.
 
 Telas: Painel (visualizações, visitantes, posts mais lidos, de onde vêm os leitores, celular x computador),
-Posts (busca, filtros por status e categoria, duplicar, excluir, liga/desliga da home direto na lista),
-Escrever post, Mídia, Comentários, Categorias, Usuários e Meu perfil.
+Posts (busca, filtros, duplicar, excluir, liga/desliga da home direto na lista), Escrever post, Mídia,
+Comentários, Categorias, Usuários (convite por link) e Meu perfil.
 
 No editor, à direita:
 
@@ -45,83 +108,37 @@ No editor, à direita:
 - **Capa, resumo, categoria, tags, endereço e Google** (com prévia de como aparece na busca).
 - **Revisões**: as últimas 30 versões de cada post, com "Restaurar".
 
-`Ctrl+S` salva. Fotos grandes são reduzidas para webp de até 1920px antes de subir. Comentários de visitantes
-só aparecem depois de aprovados. Visitas da equipe logada não contam nos números.
+## Posts do WordPress
 
-## Colocar no ar (uma vez)
-
-1. **Criar o projeto** em [supabase.com](https://supabase.com) (região São Paulo).
-2. **Criar o banco**: no SQL Editor, cole e rode `supabase/migrations/20261104120000_blog.sql`
-   (ou, com o CLI: `npx supabase link --project-ref SEU-PROJETO && npx supabase db push`).
-3. **Publicar as funções** (convidar usuários e sitemap):
-   ```bash
-   npx supabase functions deploy admin-users
-   npx supabase functions deploy sitemap --no-verify-jwt
-   npx supabase secrets set SITE_URL=https://www.redeattini.com.br
-   ```
-4. **Login** (Authentication):
-   - em *Sign In / Providers*, desligue **Allow new users to sign up** (só entra quem for convidado);
-   - em *URL Configuration*, Site URL `https://www.redeattini.com.br/admin/` e, em Redirect URLs, o mesmo endereço;
-   - em *Emails*, configure um SMTP próprio. O e-mail padrão do Supabase tem limite baixo de envios por hora.
-5. **Primeiro administrador**: em Authentication > Users, use *Invite user* com o seu e-mail. Depois, no SQL Editor:
-   ```sql
-   update profiles set role = 'admin' where email = 'seu@email.com.br';
-   ```
-   Daqui em diante, os convites saem pelo próprio painel (Usuários).
-6. **Variáveis do site** na hospedagem (ou em `.env.local`, veja `.env.example`):
-   `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Project Settings > API). Gere o site de novo.
-7. **Migrar o WordPress** (posts, capas, imagens do texto, categorias, comentários e SEO do Yoast):
-   ```bash
-   node scripts/migrate-wordpress.mjs --dry      # confere antes
-   SUPABASE_URL=https://SEU-PROJETO.supabase.co SUPABASE_SERVICE_ROLE_KEY=... node scripts/migrate-wordpress.mjs
-   ```
-   Pode rodar de novo enquanto o WordPress estiver no ar: traz só posts novos e não mexe no que já foi editado
-   no painel (`--atualizar` força sobrescrever). A **service role key** é secreta: nunca vai para o site.
-8. **Sitemap**: em `public/robots.txt`, troque `SEU-PROJETO` pelo id do projeto e envie o endereço no Google Search Console.
-9. **Hospedagem**: `vercel.json` (Vercel) e `public/_redirects` (Netlify) já mandam `/blog/...` e os endereços
-   antigos para o site. Em Apache/Nginx, aponte todas as rotas desconhecidas para `index.html`
-   e `/admin/*` para `admin/index.html`.
-
-## Rodar o blog na sua máquina
-
-Precisa do Docker aberto.
-
-```bash
-npx supabase start          # sobe banco, login, imagens e e-mail de teste (portas 553xx)
-npx supabase functions serve
-```
-
-Copie a URL e a `anon key` que o `start` mostrar para o `.env.local` (`VITE_SUPABASE_URL=http://127.0.0.1:55321`).
-Os e-mails de convite e de nova senha caem em http://127.0.0.1:55324. `npx supabase stop` desliga tudo.
+- `server/seed/blog.json` + `server/seed/media/`: retrato dos 40 posts migrados (texto, capas, imagens,
+  categorias, histórias e comentários). É de onde o `db:seed` carrega, sem depender do WordPress.
+- `npm run wp:import` (em `server/`): traz posts **novos** do WordPress enquanto ele estiver no ar. Não mexe nos
+  que já existem (`--atualizar` força sobrescrever; `--dry` só mostra).
 
 ## Leads
 
 Sem configuração, os formulários abrem o WhatsApp da Attini com a mensagem pronta.
 Para gravar os leads em um sistema, defina no build `VITE_LEAD_ENDPOINT=https://seu-endpoint/leads`.
-O formulário faz `POST` JSON nesse endereço e só cai no WhatsApp se o envio falhar.
 
 ## Onde editar
 
 - `src/data.js`: números, lojas, cotas para a indústria, benefícios do lojista, marcas.
-- `src/data.js` → `STORIES`: histórias de reserva, usadas só se o blog não responder.
+- `src/stores.json`: as 197 lojas do mapa (estado, cidade, nome, endereço), do mapa do site oficial em nov/2026.
 - `src/geo.json`: estados e as 148 cidades (coordenadas reais).
-- `src/stores.json`: as 197 lojas do mapa (estado, cidade, nome, endereço), tiradas do mapa do site oficial em nov/2026.
-- `supabase/migrations/`: banco do blog e permissões de cada papel.
-- `scripts/migrate-wordpress.mjs`: regras de categoria da migração e quais posts viram Histórias da rede.
+- `src/Layout.jsx`: cabeçalho, rodapé e contatos (iguais na home e no blog).
+- `server/lib/blog.js`: regras dos posts (permissões, revisões, números).
 - `public/brands/`, `public/img/`, `public/flags/`: imagens do site.
 
 ## Limites conhecidos
 
-- **Prévia ao compartilhar um post** (WhatsApp, LinkedIn): o site é estático, então a prévia mostra título e imagem
-  gerais da Rede Attini, e não os do post. Dentro do site e no Google aparece certo. Para prévia por post é preciso
-  uma função na hospedagem (Vercel ou Netlify) que preencha as tags do post. Dá para fazer quando a hospedagem estiver definida.
+- **Prévia ao compartilhar um post** (WhatsApp, LinkedIn) mostra título e imagem gerais da Rede Attini.
+  Agora que existe back-end na Vercel, dá para gerar a prévia de cada post.
 - Spam nos comentários: há campo-isca e limite por e-mail; se passar disso, entra um captcha.
 
 ## Antes de publicar
 
 - O mapa oficial tem 197 lojas e nenhuma no DF; o site diz 220 lojas e inclui o DF. Atualizar `src/stores.json` ou o número.
 - Confirmar 220 lojas, R$ 780 mi (12 meses) e "80+ indústrias" em `src/data.js`.
-- Confirmar a cidade do DF (entrou como Brasília em `src/geo.json`).
 - Confirmar que a 4ª edição do Conexão Attini já aconteceu (o texto diz "já está na 4ª edição").
 - Validar o escopo das cotas em `TRADE` com o comercial.
 - Revisar as categorias que a migração criou (Eventos, Rede Attini, Gestão da loja, Mercado).

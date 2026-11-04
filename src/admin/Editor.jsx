@@ -5,8 +5,7 @@ import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
 import Youtube from '@tiptap/extension-youtube'
-import { sb } from '../supabase'
-import { Icon, Switch, Badge, toast, slugify, plain, statusOf, fmtDateTime, fmtN } from './ui'
+import { Icon, Switch, Badge, toast, slugify, plain, statusOf, fmtDateTime, fmtN, call } from './ui'
 import { MediaPicker } from './pages'
 
 const EMPTY = {
@@ -86,18 +85,13 @@ export default function Editor({ id: routeId, me }) {
     onUpdate: ({ editor }) => setF(x => x && { ...x, content: editor.getHTML() }),
   })
 
-  const loadRevs = pid => sb.from('post_revisions').select('id, title, excerpt, content, saved_at, saver:profiles(name)').eq('post_id', pid).order('saved_at', { ascending: false }).then(({ data }) => setRevs(data || []))
+  const loadRevs = pid => call(`/admin/posts/${pid}/revisions`).then(setRevs).catch(() => {})
 
   useEffect(() => {
-    sb.from('categories').select('id, name').order('name').then(({ data }) => setCats(data || []))
+    call('/categories').then(setCats).catch(() => {})
     if (!id) { const p = { ...EMPTY, author_name: me.name }; setSaved(p); setRaw(p); return }
-    sb.from('posts').select('*').eq('id', id).single().then(({ data }) => {
-      if (!data) return setRaw(false)
-      setSaved(data); setRaw(data)
-    })
+    call('/admin/posts/' + id).then(data => { setSaved(data); setRaw(data); setViews(data.views_30d) }).catch(() => setRaw(false))
     loadRevs(id)
-    const since = new Date(Date.now() - 30 * 864e5).toISOString()
-    sb.from('post_views').select('id', { count: 'exact', head: true }).eq('post_id', id).gte('created_at', since).then(({ count }) => setViews(count))
   }, [])
 
   // O editor normaliza o HTML ao carregar; a versão normalizada vira a base para saber se houve mudança.
@@ -124,14 +118,12 @@ export default function Editor({ id: routeId, me }) {
     if (!row.excerpt.trim()) row.excerpt = plain(row.content).slice(0, 200)
     if (status === 'published' && !row.published_at) row.published_at = new Date().toISOString()
     setSaving(true)
-    const q = id ? sb.from('posts').update(row).eq('id', id) : sb.from('posts').insert({ ...row, author_id: me.id })
-    const { data, error } = await q.select().single()
-    setSaving(false)
-    if (error) {
-      const msg = error.code === '23505' ? 'Já existe um post com esse endereço. Mude o campo "Endereço".'
-        : error.code === 'PGRST116' || error.code === '42501' ? 'Você não tem permissão para essa ação. Peça a um editor.' : error.message
-      return toast(msg, true)
-    }
+    let data
+    try {
+      data = await (id ? call('/admin/posts/' + id, { method: 'PATCH', body: row }) : call('/admin/posts', { method: 'POST', body: row }))
+    } catch (err) {
+      return toast(err.status === 409 ? 'Já existe um post com esse endereço. Mude o campo "Endereço".' : err.message, true)
+    } finally { setSaving(false) }
     const next = { ...pick(data), content: f.content }
     base.current = next; setF(next); setSaved(data)
     if (!id) { setId(data.id); setViews(0); history.replaceState(null, '', '#/posts/' + data.id) }
@@ -167,8 +159,7 @@ export default function Editor({ id: routeId, me }) {
   }
   const remove = async () => {
     if (!confirm(`Excluir "${f.title || 'sem título'}" definitivamente? Isso não pode ser desfeito.`)) return
-    const { error } = await sb.from('posts').delete().eq('id', id)
-    if (error) return toast(error.message, true)
+    try { await call('/admin/posts/' + id, { method: 'DELETE' }) } catch (err) { return toast(err.message, true) }
     window.__dirty = false; toast('Post excluído.'); location.hash = '/posts'
   }
   const addTags = v => {
@@ -287,7 +278,7 @@ export default function Editor({ id: routeId, me }) {
           {revs.length > 0 && (
             <Panel title={`Revisões (${revs.length})`} open={false}>
               <ul className="revs">
-                {revs.map(r => <li key={r.id}><span>{fmtDateTime(r.saved_at)}<small>{r.saver?.name || 'Importado'}</small></span>{canEdit && <button className="link-btn" onClick={() => restore(r)}>Restaurar</button>}</li>)}
+                {revs.map(r => <li key={r.id}><span>{fmtDateTime(r.saved_at)}<small>{r.saver || 'Importado'}</small></span>{canEdit && <button className="link-btn" onClick={() => restore(r)}>Restaurar</button>}</li>)}
               </ul>
             </Panel>
           )}

@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import { sb } from '../supabase'
+import { api } from '../api'
+
+// Chamada do painel ao back-end. Se a sessão expirar, o painel volta para o login.
+export const call = (path, opts) => api(path, opts).catch(e => {
+  if (e.status === 401 && !path.startsWith('/auth/')) dispatchEvent(new Event('adm-logout'))
+  throw e
+})
 
 export const ROLES = { admin: 'Administrador', editor: 'Editor', author: 'Autor' }
 export const ROLE_HINT = {
@@ -105,12 +111,9 @@ async function shrink(file) {
 export async function uploadImage(file) {
   if (!file.type.startsWith('image/')) throw new Error(`${file.name} não é uma imagem.`)
   const { blob, width, height } = await shrink(file)
-  const d = new Date(), ext = blob.type === 'image/webp' ? 'webp' : file.name.split('.').pop().toLowerCase()
-  const path = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${crypto.randomUUID().slice(0, 8)}-${slugify(file.name.replace(/\.\w+$/, '')) || 'imagem'}.${ext}`
-  const up = await sb.storage.from('media').upload(path, blob, { contentType: blob.type, cacheControl: '31536000' })
-  if (up.error) throw up.error
-  const url = sb.storage.from('media').getPublicUrl(path).data.publicUrl
-  const { data, error } = await sb.from('media').insert({ path, url, width, height, size: blob.size }).select().single()
-  if (error) throw error
-  return data
+  const form = new FormData()
+  form.append('file', blob, file.name)
+  form.append('name', file.name)
+  if (width) { form.append('width', width); form.append('height', height) }
+  return call('/admin/media', { method: 'POST', form }) // o back-end grava no Storage e registra na biblioteca
 }
