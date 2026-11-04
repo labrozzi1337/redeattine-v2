@@ -161,7 +161,6 @@
   .map-intro .lead { font-size: 14px; margin-top: 12px; }
   .map-intro .ctas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
   .map-rail { bottom: 14px; }
-  .map-tip { display: none; }
 }
 
 /* ===== Blog ===== */

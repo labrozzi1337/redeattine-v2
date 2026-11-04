@@ -405,7 +405,7 @@ export default function App() {
       </main>
 
       <footer className="ft">
-        <div className="ft-giant"><img src="/logo-attini.svg" alt="Rede Attini" /></div>
+        <div className="ft-giant"><img src="/logo-attini.png" alt="Rede Attini" width="550" height="175" /></div>
         <div className="wrap ft-row">
           <p>Construir é tornar real tudo aquilo que é sonho.</p>
           <div className="ft-links">

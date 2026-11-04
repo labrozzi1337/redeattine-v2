@@ -140,18 +140,27 @@ export default function BrazilMap() {
       ray.setFromCamera(ndc, camera)
       return ray.intersectObjects(meshes)[0]?.object.userData
     }
+    // Etiqueta no ponto do mapa: segue o mouse no desktop; no celular aparece onde o dedo tocou.
+    const touch = matchMedia('(hover: none)').matches
+    let tipTimer
     const move = e => {
+      if (e.pointerType === 'touch') return // arrastar o dedo é rolar a página
       const s = hit(e), t = tip.current, r = el.getBoundingClientRect()
       const reg = s && REGIONS.find(x => x.uf === s.uf)
       el.style.cursor = reg ? 'pointer' : ''
       if (!s) { t.style.opacity = 0; return }
       t.innerHTML = reg
-        ? `<img src="${flag(s.uf)}" alt=""><b>${s.name}</b><span>${count(reg)} · clique para ver</span>`
+        ? `<img src="${flag(s.uf)}" alt=""><b>${s.name}</b><span>${count(reg)}${touch ? '' : ' · clique para ver'}</span>`
         : `<b>${s.name}</b><span>próxima fronteira</span>`
       t.style.opacity = 1
-      t.style.transform = `translate(${e.clientX - r.left + 16}px, ${e.clientY - r.top + 16}px)`
+      const x = Math.min(e.clientX - r.left + 16, r.width - t.offsetWidth - 8), y = Math.min(e.clientY - r.top + 16, r.height - t.offsetHeight - 8)
+      t.style.transform = `translate(${Math.max(8, x)}px, ${y}px)`
     }
-    const click = e => { const s = hit(e); if (s && ACTIVE.has(s.uf)) setSel(s.uf) }
+    const click = e => {
+      const s = hit(e)
+      if (s && ACTIVE.has(s.uf)) setSel(s.uf)
+      if (touch) { move({ clientX: e.clientX, clientY: e.clientY }); clearTimeout(tipTimer); tipTimer = setTimeout(() => (tip.current.style.opacity = 0), 3000) }
+    }
     el.addEventListener('pointermove', move)
     el.addEventListener('click', click)
     el.addEventListener('pointerleave', () => (tip.current.style.opacity = 0))
