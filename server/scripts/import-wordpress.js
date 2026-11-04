@@ -7,7 +7,6 @@
 // já importado (edições feitas no painel ficam). Use --atualizar para sobrescrever com o WordPress.
 import sharp from 'sharp'
 import { createClient } from '@supabase/supabase-js'
-import postgres from 'postgres'
 
 const WP = 'https://www.redeattini.com.br/wp-json/wp/v2'
 const DRY = process.argv.includes('--dry')
@@ -94,15 +93,15 @@ if (DRY) {
   process.exit(0)
 }
 
-const { DATABASE_URL, SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env
-if (!DATABASE_URL || !SUPABASE_URL || !SUPABASE_SECRET_KEY) { console.error('Defina DATABASE_URL, SUPABASE_URL e SUPABASE_SECRET_KEY em server/.env.local (ou use --dry).'); process.exit(1) }
-const sql = postgres(DATABASE_URL, { prepare: false, max: 1 })
-const S = n => sql(`SYS_SITE_ATTINI.${n}`)
-const storage = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, { auth: { persistSession: false } }).storage
+const { SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env
+if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) { console.error('Defina SUPABASE_URL e SUPABASE_SECRET_KEY em server/.env.local (ou use --dry).'); process.exit(1) }
+const supa = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, { auth: { persistSession: false } })
+const db = supa.schema('SYS_SITE_ATTINI'), storage = supa.storage
+const must = ({ data, error }) => { if (error) throw new Error(`${error.code}: ${error.message}`); return data }
 const BUCKET = 'site-attini'
 
 // Imagens: baixa do WordPress, converte para webp (até 1600px) e guarda no bucket do site. Reaproveita o que já subiu.
-const known = new Map((await sql`select path, url from ${S('media')}`).map(m => [m.path, m.url]))
+const known = new Map(must(await db.from('media').select('path, url')).map(m => [m.path, m.url]))
 async function copyImage(src, alt = '') {
   const name = decodeURIComponent(src.split('/').pop()).replace(/\.\w+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
   const path = `wp/${src.match(/uploads\/(\d{4})\//)?.[1] || 'antigas'}/${name}.webp`
@@ -113,44 +112,41 @@ async function copyImage(src, alt = '') {
   const { error } = await storage.from(BUCKET).upload(path, buf, { contentType: 'image/webp', cacheControl: '31536000', upsert: true })
   if (error) throw error
   const url = storage.from(BUCKET).getPublicUrl(path).data.publicUrl
-  await sql`insert into ${S('media')} ${sql({ path, url, alt, width: info.width, height: info.height, size: buf.length })} on conflict (path) do nothing`
+  must(await db.from('media').upsert({ path, url, alt, width: info.width, height: info.height, size: buf.length }, { onConflict: 'path', ignoreDuplicates: true }))
   known.set(path, url)
   return url
 }
 
-const cats = {}
-for (const [name, slug] of CATEGORIES) {
-  await sql`insert into ${S('categories')} (name, slug) values (${name}, ${slug}) on conflict (slug) do nothing`
-  cats[slug] = (await sql`select id from ${S('categories')} where slug = ${slug}`)[0].id
-}
+must(await db.from('categories').upsert(CATEGORIES.map(([name, slug]) => ({ name, slug })), { onConflict: 'slug', ignoreDuplicates: true }))
+const cats = Object.fromEntries(must(await db.from('categories').select('id, slug')).map(c => [c.slug, c.id]))
 
-const existing = new Map((await sql`select id, legacy_id from ${S('posts')} where legacy_id is not null`).map(p => [p.legacy_id, p.id]))
+const existing = new Map(must(await db.from('posts').select('id, legacy_id').not('legacy_id', 'is', null)).map(p => [p.legacy_id, p.id]))
 const ids = new Map(existing)
 let added = 0, updated = 0
 for (const p of plan.sort((a, b) => a.published_at.localeCompare(b.published_at))) {
   if (existing.has(p.legacy_id) && !OVERWRITE) continue
-  process.stdout.write(`${existing.has(p.legacy_id) ? 'atualizando' : 'importando'}: ${p.title.slice(0, 70)}\n`)
+  process.stdout.write(`${existing.has(p.legacy_id) ? 'atualizando' : 'importando'}: ${p.title.slice(0, 70)}
+`)
   let content = p.content
   for (const src of p.images) content = content.split(src).join(await copyImage(src))
   const { images, category, catName, cover, ...row } = p
-  Object.assign(row, { content, category_id: cats[category], cover_url: cover ? await copyImage(cover, p.cover_alt) : null, published_at: new Date(p.published_at) })
-  const [saved] = await sql`insert into ${S('posts')} ${sql(row)}
-    on conflict (legacy_id) do update set ${sql(row, Object.keys(row).filter(k => k !== 'legacy_id'))}, updated_at = now() returning id`
+  Object.assign(row, { content, category_id: cats[category], cover_url: cover ? await copyImage(cover, p.cover_alt) : null, updated_at: new Date().toISOString() })
+  const saved = must(await db.from('posts').upsert(row, { onConflict: 'legacy_id' }).select('id').single())
   ids.set(p.legacy_id, saved.id)
   existing.has(p.legacy_id) ? updated++ : added++
 }
 
 // Comentários: pais antes dos filhos, para ligar as respostas.
-const commentIds = new Map((await sql`select id, legacy_id from ${S('comments')} where legacy_id is not null`).map(c => [c.legacy_id, c.id]))
+const commentIds = new Map(must(await db.from('comments').select('id, legacy_id').not('legacy_id', 'is', null)).map(c => [c.legacy_id, c.id]))
 let comments = 0
 for (const c of wpComments.sort((a, b) => a.parent - b.parent || a.id - b.id)) {
   if (commentIds.has(c.id) || !ids.has(c.post)) continue
-  const [row] = await sql`insert into ${S('comments')} ${sql({
+  const row = must(await db.from('comments').insert({
     legacy_id: c.id, post_id: ids.get(c.post), parent_id: c.parent ? commentIds.get(c.parent) ?? null : null,
-    author_name: decode(c.author_name).slice(0, 80), content: text(c.content.rendered), status: 'approved', created_at: new Date(c.date_gmt + 'Z'),
-  })} returning id`
+    author_name: decode(c.author_name).slice(0, 80), content: text(c.content.rendered), status: 'approved', created_at: c.date_gmt + 'Z',
+  }).select('id').single())
   commentIds.set(c.id, row.id); comments++
 }
 
-console.log(`\nPronto: ${added} posts novos, ${updated} atualizados, ${comments} comentários, ${known.size} imagens na biblioteca.`)
-await sql.end()
+console.log(`
+Pronto: ${added} posts novos, ${updated} atualizados, ${comments} comentários, ${known.size} imagens na biblioteca.`)

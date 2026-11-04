@@ -6,7 +6,7 @@ Home da Rede Attini (lojista e indústria), blog público e painel do blog.
 |---|---|---|
 | Front (site, blog e painel) | Vite + React + Three.js + GSAP + Lenis | raiz (`src/`, `admin/`) |
 | Back-end (toda a lógica) | Next.js 16 (só rotas `/api`) | `server/` |
-| Banco (só dados) | Postgres do Supabase, schema `SYS_SITE_ATTINI` | `server/db/` |
+| Banco (só dados) | Postgres do Supabase, schema `SYS_SITE_ATTINI`, acessado pela API com a chave secreta | `server/db/` |
 | Imagens do blog | Supabase Storage, bucket `site-attini` | — |
 
 O banco não tem funções, gatilhos nem regras: permissões, revisões, números e validações ficam no back-end.
@@ -22,26 +22,24 @@ O navegador nunca fala com o Supabase; tudo passa por `/api` no próprio domíni
 
 ## Colocar para funcionar
 
-Tudo aponta para o projeto real do Supabase (`gfzxqqbjxwqfwqoeecbx`). Não há banco local.
+O back-end fala com o banco **pela API do Supabase com a chave secreta**. Não usa a senha do banco.
+Variáveis já preenchidas em `server/.env.local` (fora do git): `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SESSION_SECRET`, `SITE_URL`.
 
-1. **Conexão do banco**: em `server/.env.local`, preencha `DATABASE_URL`
-   (Supabase > botão **Connect** > **Session pooler** > copie a URI e troque `[YOUR-PASSWORD]` pela senha do banco).
-   As outras variáveis já estão preenchidas.
-2. **Criar tudo de uma vez** (dentro de `server/`):
-   ```bash
-   npm install
-   npm run setup     # cria o schema SYS_SITE_ATTINI, o administrador inicial e carrega os 40 posts
-   ```
-   As 46 imagens dos posts já estão no Storage (bucket `site-attini`). Pode rodar o `setup` de novo sem duplicar nada.
-3. **Primeiro acesso**: `elvis@labrozzi.com.br` com a senha provisória combinada. O painel obriga a criar uma senha
-   nova antes de liberar qualquer coisa.
-4. **Rodar na máquina**: na raiz, `npm run dev` sobe o site (http://localhost:5173, painel em /admin) e o back-end
-   (porta 3001) juntos; Ctrl+C desliga os dois. Usa o banco real. Separados: `npm run dev:site` e `npm run dev:api`.
+1. **Migrations**: no SQL Editor do Supabase, rode em ordem (podem ser rodadas de novo sem problema):
+   - `server/db/001_blog.sql`: schema `SYS_SITE_ATTINI` e tabelas;
+   - `server/db/002_admin_inicial.sql`: administrador `elvis@labrozzi.com.br` (senha provisória);
+   - `server/db/003_acesso_api.sql`: acesso do back-end ao schema. O público continua sem acesso.
+2. **Expor o schema**: *Project Settings > Data API > Exposed schemas*: adicione `SYS_SITE_ATTINI` e salve.
+3. **Posts**: dentro de `server/`, `npm run db:seed` (40 posts, comentários e imagens; pode repetir).
+4. **Rodar**: na raiz, `npm run dev` sobe o site (http://localhost:5173, painel em /admin) e o back-end (porta 3001).
+   Entre com `elvis@labrozzi.com.br` e a senha provisória: o painel obriga a criar uma senha nova.
+
+Se algo faltar, o painel diz exatamente o quê (schema não exposto, migration faltando, chave inválida).
 
 ## Colocar no ar (Vercel)
 
-1. **Back-end**: novo projeto na Vercel com *Root Directory* = `server`. Variáveis: as de `server/.env.local`,
-   trocando a `DATABASE_URL` pela do **Transaction pooler** (porta 6543) e tirando `ALLOWED_ORIGINS`.
+1. **Back-end**: novo projeto na Vercel com *Root Directory* = `server`. Variáveis: as de `server/.env.local`
+   (sem `ALLOWED_ORIGINS`).
    Nome sugerido: `attini-site-api`.
 2. **Front**: outro projeto na Vercel com a raiz do repositório. O `vercel.json` manda `/api` e `/sitemap.xml`
    para `https://attini-site-api.vercel.app`. **Se o projeto do back-end tiver outro endereço, troque nesse arquivo.**

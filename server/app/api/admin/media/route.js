@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { route, fail } from '@/lib/http'
-import { sql, t } from '@/lib/db'
+import { db, must } from '@/lib/db'
 import { requireUser } from '@/lib/auth'
 import { upload, ensureBucket } from '@/lib/storage'
 import { slugify } from '@/lib/blog'
@@ -9,7 +9,7 @@ const TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', '
 
 export const GET = route(async req => {
   await requireUser(req)
-  return sql`select * from ${t('media')} order by created_at desc`
+  return must(await db.from('media').select('*').order('created_at', { ascending: false }))
 })
 
 // Envio de imagem (o painel já reduz para webp de até 1920px antes de mandar).
@@ -24,7 +24,5 @@ export const POST = route(async req => {
   const path = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${randomUUID().slice(0, 8)}-${slugify(String(form.get('name') || file.name).replace(/\.\w+$/, ''))}.${ext}`
   await ensureBucket()
   const url = await upload(path, Buffer.from(await file.arrayBuffer()), file.type)
-  const [row] = await sql`insert into ${t('media')} (path, url, width, height, size, uploaded_by)
-    values (${path}, ${url}, ${+form.get('width') || null}, ${+form.get('height') || null}, ${file.size}, ${u.id}) returning *`
-  return row
+  return must(await db.from('media').insert({ path, url, width: +form.get('width') || null, height: +form.get('height') || null, size: file.size, uploaded_by: u.id }).select().single())
 })

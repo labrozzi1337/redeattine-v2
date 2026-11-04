@@ -1,5 +1,5 @@
 import { scryptSync, randomBytes, timingSafeEqual, createHmac, createHash } from 'node:crypto'
-import { sql, t } from './db'
+import { db, must, nowIso, isUuid } from './db'
 import { fail } from './http'
 
 export const COOKIE = 'attini_session'
@@ -40,15 +40,14 @@ function readSession(req) {
   const [payload, sig] = raw.split('.')
   const good = Buffer.from(sign(payload)), got = Buffer.from(sig || '')
   if (good.length !== got.length || !timingSafeEqual(good, got)) return null
-  const s = JSON.parse(Buffer.from(payload, 'base64url').toString())
-  return s.e > Date.now() ? s : null
+  try { const s = JSON.parse(Buffer.from(payload, 'base64url').toString()); return s.e > Date.now() && isUuid(s.u) ? s : null } catch { return null }
 }
 
 // O papel é lido do banco a cada pedido: trocar o papel ou remover a pessoa vale na hora.
 export async function currentUser(req) {
   const s = readSession(req)
   if (!s) return null
-  const [u] = await sql`select id, email, name, role, session_version, must_change_password from ${t('users')} where id = ${s.u}`
+  const u = must(await db.from('users').select('id, email, name, role, session_version, must_change_password').eq('id', s.u).maybeSingle())
   return u && u.session_version === s.v ? u : null
 }
 // Com senha provisória, a única coisa liberada é trocar a senha (passwordChange = true).
@@ -67,16 +66,15 @@ const tokenHash = token => createHash('sha256').update(token).digest('hex')
 export async function createLink(userId, kind) {
   const token = randomBytes(32).toString('base64url')
   const hours = kind === 'invite' ? 24 * 7 : 24
-  await sql`update ${t('auth_tokens')} set used_at = now() where user_id = ${userId} and used_at is null`
-  await sql`insert into ${t('auth_tokens')} (user_id, kind, token_hash, expires_at) values (${userId}, ${kind}, ${tokenHash(token)}, now() + ${hours + ' hours'}::interval)`
+  must(await db.from('auth_tokens').update({ used_at: nowIso() }).eq('user_id', userId).is('used_at', null))
+  must(await db.from('auth_tokens').insert({ user_id: userId, kind, token_hash: tokenHash(token), expires_at: new Date(Date.now() + hours * 36e5).toISOString() }))
   const site = (process.env.SITE_URL || 'http://localhost:5173').replace(/\/$/, '')
   return `${site}/admin/#/senha?token=${token}&tipo=${kind === 'invite' ? 'convite' : 'nova'}`
 }
 
 export async function consumeLink(token) {
-  const [row] = await sql`select id, user_id from ${t('auth_tokens')}
-    where token_hash = ${tokenHash(String(token || ''))} and used_at is null and expires_at > now()`
+  const row = must(await db.from('auth_tokens').select('id, user_id').eq('token_hash', tokenHash(String(token || ''))).is('used_at', null).gt('expires_at', nowIso()).maybeSingle())
   if (!row) fail(400, 'Esse link expirou ou já foi usado. Peça um novo ao administrador.')
-  await sql`update ${t('auth_tokens')} set used_at = now() where id = ${row.id}`
+  must(await db.from('auth_tokens').update({ used_at: nowIso() }).eq('id', row.id))
   return row.user_id
 }

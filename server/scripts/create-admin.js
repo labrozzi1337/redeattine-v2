@@ -1,19 +1,16 @@
-// Cria (ou reaproveita) o primeiro administrador e mostra o link para ele criar a senha.
+// Cria (ou promove) um administrador e mostra o link para ele criar a senha.
 //   npm run db:admin -- email@empresa.com.br "Nome da Pessoa"
-import postgres from 'postgres'
+import { createClient } from '@supabase/supabase-js'
 import { randomBytes, createHash } from 'node:crypto'
 
 const [email, name = ''] = process.argv.slice(2)
 if (!/^\S+@\S+\.\S+$/.test(email || '')) { console.error('Uso: npm run db:admin -- email@empresa.com.br "Nome"'); process.exit(1) }
 
-if (!process.env.DATABASE_URL) { console.error('Preencha DATABASE_URL em server/.env.local (Supabase > Connect > Session pooler).'); process.exit(1) }
-const sql = postgres(process.env.DATABASE_URL, { prepare: false, max: 1 })
-const S = n => sql(`SYS_SITE_ATTINI.${n}`)
-const [user] = await sql`insert into ${S('users')} (email, name, role) values (${email.toLowerCase()}, ${name || email.split('@')[0]}, 'admin')
-  on conflict (email) do update set role = 'admin' returning id, name`
+const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } }).schema('SYS_SITE_ATTINI')
+const must = ({ data, error }) => { if (error) throw new Error(`${error.code}: ${error.message}`); return data }
+
+const user = must(await db.from('users').upsert({ email: email.toLowerCase(), name: name || email.split('@')[0], role: 'admin' }, { onConflict: 'email' }).select('id, name').single())
 const token = randomBytes(32).toString('base64url')
-await sql`insert into ${S('auth_tokens')} (user_id, kind, token_hash, expires_at)
-  values (${user.id}, 'invite', ${createHash('sha256').update(token).digest('hex')}, now() + interval '7 days')`
+must(await db.from('auth_tokens').insert({ user_id: user.id, kind: 'invite', token_hash: createHash('sha256').update(token).digest('hex'), expires_at: new Date(Date.now() + 7 * 864e5).toISOString() }))
 const site = (process.env.SITE_URL || 'http://localhost:5173').replace(/\/$/, '')
 console.log(`\n${user.name} é administrador(a). Link para criar a senha (vale 7 dias):\n\n${site}/admin/#/senha?token=${token}&tipo=convite\n`)
-await sql.end()
