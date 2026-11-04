@@ -48,15 +48,18 @@ function readSession(req) {
 export async function currentUser(req) {
   const s = readSession(req)
   if (!s) return null
-  const [u] = await sql`select id, email, name, role, session_version from ${t('users')} where id = ${s.u}`
+  const [u] = await sql`select id, email, name, role, session_version, must_change_password from ${t('users')} where id = ${s.u}`
   return u && u.session_version === s.v ? u : null
 }
-export async function requireUser(req, roles) {
+// Com senha provisória, a única coisa liberada é trocar a senha (passwordChange = true).
+export async function requireUser(req, roles, passwordChange = false) {
   const u = await currentUser(req)
   if (!u) fail(401, 'Sua sessão expirou. Entre de novo.')
+  if (u.must_change_password && !passwordChange) fail(403, 'Crie uma senha nova para continuar.')
   if (roles && !roles.includes(u.role)) fail(403, 'Você não tem permissão para isso.')
   return u
 }
+export const publicUser = u => ({ id: u.id, email: u.email, name: u.name, role: u.role, must_change: !!u.must_change_password })
 
 // ---------------------------------------------------------------- links de convite e nova senha
 const tokenHash = token => createHash('sha256').update(token).digest('hex')

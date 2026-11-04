@@ -9,7 +9,8 @@
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.js",
     "db:seed": "node --env-file-if-exists=.env.local scripts/seed.js",
     "db:admin": "node --env-file-if-exists=.env.local scripts/create-admin.js",
-    "wp:import": "node --env-file-if-exists=.env.local scripts/import-wordpress.js"
+    "wp:import": "node --env-file-if-exists=.env.local scripts/import-wordpress.js",
+    "setup": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

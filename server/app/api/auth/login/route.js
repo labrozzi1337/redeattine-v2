@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { route, body, fail } from '@/lib/http'
 import { sql, t } from '@/lib/db'
-import { checkPassword, sessionCookie } from '@/lib/auth'
+import { checkPassword, sessionCookie, publicUser } from '@/lib/auth'
 
 // 5 tentativas erradas bloqueiam a conta por 15 minutos.
 export const POST = route(async req => {
@@ -15,5 +15,5 @@ export const POST = route(async req => {
     fail(401, 'E-mail ou senha incorretos.')
   }
   await sql`update ${t('users')} set failed_logins = 0, locked_until = null, last_login_at = now() where id = ${u.id}`
-  return sessionCookie(NextResponse.json({ user: { id: u.id, email: u.email, name: u.name, role: u.role } }), u)
+  return sessionCookie(NextResponse.json({ user: publicUser(u) }), u)
 })

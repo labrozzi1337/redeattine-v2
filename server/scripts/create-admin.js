@@ -6,6 +6,7 @@ import { randomBytes, createHash } from 'node:crypto'
 const [email, name = ''] = process.argv.slice(2)
 if (!/^\S+@\S+\.\S+$/.test(email || '')) { console.error('Uso: npm run db:admin -- email@empresa.com.br "Nome"'); process.exit(1) }
 
+if (!process.env.DATABASE_URL) { console.error('Preencha DATABASE_URL em server/.env.local (Supabase > Connect > Session pooler).'); process.exit(1) }
 const sql = postgres(process.env.DATABASE_URL, { prepare: false, max: 1 })
 const S = n => sql(`SYS_SITE_ATTINI.${n}`)
 const [user] = await sql`insert into ${S('users')} (email, name, role) values (${email.toLowerCase()}, ${name || email.split('@')[0]}, 'admin')

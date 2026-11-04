@@ -5,8 +5,6 @@ import postgres from 'postgres'
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'node:fs'
 
-const sql = postgres(process.env.DATABASE_URL, { prepare: false, max: 1 })
-const S = name => sql(`SYS_SITE_ATTINI.${name}`)
 const storage = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } }).storage
 const BUCKET = 'site-attini'
 const seed = new URL('../seed/', import.meta.url)
@@ -25,9 +23,15 @@ let up = 0
 for (const m of snap.media) {
   const { error } = await storage.from(BUCKET).upload(m.path, readFileSync(new URL('media/' + m.path, seed)), { contentType: 'image/webp', cacheControl: '31536000', upsert: true })
   if (error) throw error
-  await sql`insert into ${S('media')} ${sql({ ...m, url: base + m.path })} on conflict (path) do nothing`
   up++
 }
+console.log(`${up} imagens no bucket "${BUCKET}".`)
+
+// Daqui para baixo precisa do banco
+if (!process.env.DATABASE_URL) { console.log('Falta DATABASE_URL em server/.env.local: posts e comentários entram quando ela for preenchida (rode de novo).'); process.exit(0) }
+const sql = postgres(process.env.DATABASE_URL, { prepare: false, max: 1 })
+const S = name => sql(`SYS_SITE_ATTINI.${name}`)
+for (const m of snap.media) await sql`insert into ${S('media')} ${sql({ ...m, url: base + m.path })} on conflict (path) do nothing`
 
 for (const c of snap.categories) await sql`insert into ${S('categories')} ${sql(c)} on conflict (slug) do nothing`
 const catId = Object.fromEntries((await sql`select id, slug from ${S('categories')}`).map(c => [c.slug, c.id]))
@@ -47,5 +51,5 @@ for (const c of [...snap.comments].sort((a, b) => !!a.parent_id - !!b.parent_id)
   comments += r.length
 }
 
-console.log(`Pronto: ${up} imagens no bucket "${BUCKET}", ${posts} posts novos, ${comments} comentários novos.`)
+console.log(`Pronto: ${posts} posts novos, ${comments} comentários novos.`)
 await sql.end()

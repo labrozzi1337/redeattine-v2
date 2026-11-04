@@ -20,48 +20,36 @@ O navegador nunca fala com o Supabase; tudo passa por `/api` no próprio domíni
 | `/admin/` | Painel do blog (login) |
 | `/sitemap.xml` | Mapa do site para o Google (gerado pelo back-end) |
 
-## Rodar na sua máquina
+## Colocar para funcionar
 
-Precisa do Docker aberto (o Supabase local faz o papel do banco e do Storage).
+Tudo aponta para o projeto real do Supabase (`gfzxqqbjxwqfwqoeecbx`). Não há banco local.
 
-```bash
-npx supabase start                 # Postgres e Storage locais (portas 553xx)
-cd server
-cp .env.example .env.local         # e ajuste para o local (veja abaixo)
-npm install
-npm run db:migrate                 # cria o schema SYS_SITE_ATTINI e as tabelas
-npm run db:seed                    # carrega os 40 posts migrados do WordPress, com imagens e comentários
-npm run db:admin -- seu@email.com.br "Seu Nome"   # cria o administrador e mostra o link para criar a senha
-npm run dev                        # back-end em http://localhost:3001
-cd ..
-npm install
-npm run dev                        # site em http://localhost:5173 e painel em /admin/
-```
-
-`server/.env.local` local: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55322/postgres`,
-`SUPABASE_URL=http://127.0.0.1:55321`, `SUPABASE_SECRET_KEY` = a `SERVICE_ROLE_KEY` que o `supabase start` mostra,
-`SESSION_SECRET` qualquer texto longo e `SITE_URL=http://localhost:5173`.
+1. **Conexão do banco**: em `server/.env.local`, preencha `DATABASE_URL`
+   (Supabase > botão **Connect** > **Session pooler** > copie a URI e troque `[YOUR-PASSWORD]` pela senha do banco).
+   As outras variáveis já estão preenchidas.
+2. **Criar tudo de uma vez** (dentro de `server/`):
+   ```bash
+   npm install
+   npm run setup     # cria o schema SYS_SITE_ATTINI, o administrador inicial e carrega os 40 posts
+   ```
+   As 46 imagens dos posts já estão no Storage (bucket `site-attini`). Pode rodar o `setup` de novo sem duplicar nada.
+3. **Primeiro acesso**: `elvis@labrozzi.com.br` com a senha provisória combinada. O painel obriga a criar uma senha
+   nova antes de liberar qualquer coisa.
+4. **Testar na máquina** (opcional): `cd server && npm run dev` (back-end, porta 3001) e, na raiz, `npm run dev`
+   (site em http://localhost:5173, painel em /admin/). Usa o banco real.
 
 ## Colocar no ar (Vercel)
 
-1. **Banco**: em `server/.env.local`, coloque a `DATABASE_URL` do projeto (Direct connection ou Session pooler),
-   `SUPABASE_URL` e `SUPABASE_SECRET_KEY`. Depois, dentro de `server/`:
-   ```bash
-   npm run db:migrate     # cria o schema SYS_SITE_ATTINI
-   npm run db:seed        # posts, imagens (bucket site-attini) e comentários
-   npm run db:admin -- seu@email.com.br "Seu Nome"
-   ```
-   Sem conexão local? Dá para colar `server/db/001_blog.sql` no SQL Editor do Supabase. O seed e o admin,
-   porém, precisam rodar por aqui.
-2. **Back-end**: novo projeto na Vercel com *Root Directory* = `server`. Variáveis: as de `server/.env.example`
-   (na Vercel, a `DATABASE_URL` do *Transaction pooler*, porta 6543). Nome sugerido: `attini-site-api`.
-3. **Front**: outro projeto na Vercel com a raiz do repositório. O `vercel.json` manda `/api` e `/sitemap.xml`
+1. **Back-end**: novo projeto na Vercel com *Root Directory* = `server`. Variáveis: as de `server/.env.local`,
+   trocando a `DATABASE_URL` pela do **Transaction pooler** (porta 6543) e tirando `ALLOWED_ORIGINS`.
+   Nome sugerido: `attini-site-api`.
+2. **Front**: outro projeto na Vercel com a raiz do repositório. O `vercel.json` manda `/api` e `/sitemap.xml`
    para `https://attini-site-api.vercel.app`. **Se o projeto do back-end tiver outro endereço, troque nesse arquivo.**
    O front não precisa de variáveis.
-4. **Domínio**: `www.redeattini.com.br` no projeto do front. Coloque o mesmo em `SITE_URL` no back-end.
-5. **E-mail (opcional)**: com `SMTP_URL`, convites e "esqueci a senha" saem por e-mail. Sem ele, o painel mostra
+3. **Domínio**: `www.redeattini.com.br` no projeto do front (igual ao `SITE_URL` do back-end).
+4. **E-mail (opcional)**: com `SMTP_URL`, convites e "esqueci a senha" saem por e-mail. Sem ele, o painel mostra
    o link para o administrador copiar e mandar.
-6. **Google**: envie `https://www.redeattini.com.br/sitemap.xml` no Search Console.
+5. **Google**: envie `https://www.redeattini.com.br/sitemap.xml` no Search Console.
 
 ## Rotas do back-end
 
@@ -85,6 +73,8 @@ Segurança:
 - **Tentativas de login:** 5 erros bloqueiam a conta por 15 minutos.
 - **Origem dos pedidos:** alterações vindas de outros sites são recusadas.
 - **Permissões:** o papel é conferido no banco a cada pedido.
+- **Senha provisória:** a senha inicial só serve para criar a senha definitiva.
+- **Chaves:** a chave secreta do Supabase fica só no back-end (`server/.env.local` e Vercel), nunca no front.
 
 ## O painel do blog
 

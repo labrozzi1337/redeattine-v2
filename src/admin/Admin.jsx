@@ -75,6 +75,35 @@ function SetPassword({ onIn }) {
   )
 }
 
+// Primeiro acesso com senha provisória: precisa criar uma senha nova antes de usar o painel.
+function FirstPassword({ me, onDone }) {
+  const [f, setF] = useState({ current: '', password: '', again: '' })
+  const [msg, setMsg] = useState('')
+  const set = k => e => setF({ ...f, [k]: e.target.value })
+  const submit = async e => {
+    e.preventDefault()
+    if (f.password.length < 8) return setMsg('Use pelo menos 8 caracteres.')
+    if (f.password !== f.again) return setMsg('As senhas novas não são iguais.')
+    try { await call('/admin/me', { method: 'POST', body: { current: f.current, password: f.password } }); toast('Senha criada. Bem-vindo(a)!'); onDone() }
+    catch (err) { setMsg(err.message) }
+  }
+  return (
+    <div className="auth">
+      <form className="auth-card" onSubmit={submit}>
+        <Brand />
+        <h1>Crie sua senha</h1>
+        <p className="muted">Olá, {me.name.split(' ')[0]}! Você entrou com uma senha provisória. Crie a sua para continuar.</p>
+        <label className="fld"><span>Senha provisória</span><input type="password" required autoComplete="current-password" autoFocus value={f.current} onChange={set('current')} /></label>
+        <label className="fld"><span>Nova senha</span><input type="password" required autoComplete="new-password" value={f.password} onChange={set('password')} placeholder="Mínimo de 8 caracteres" /></label>
+        <label className="fld"><span>Repita a nova senha</span><input type="password" required autoComplete="new-password" value={f.again} onChange={set('again')} /></label>
+        {msg && <p className="auth-msg bad">{msg}</p>}
+        <button className="btn-p big">Salvar e entrar</button>
+        <button type="button" className="link-btn" onClick={() => call('/auth/logout', { method: 'POST' }).finally(() => dispatchEvent(new Event('adm-logout')))}>Sair</button>
+      </form>
+    </div>
+  )
+}
+
 function Shell({ me, setMe }) {
   const route = useRoute()
   const [open, setOpen] = useState(false)
@@ -149,5 +178,6 @@ export default function Admin() {
   if (link) return <><SetPassword onIn={onIn} /><Toasts /></>
   if (me === undefined) return <div className="auth"><Brand /></div>
   if (!me) return <><Login onIn={onIn} /><Toasts /></>
+  if (me.must_change) return <><FirstPassword me={me} onDone={() => setMe({ ...me, must_change: false })} /><Toasts /></>
   return <><Shell me={me} setMe={setMe} /><Toasts /></>
 }

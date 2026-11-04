@@ -12,14 +12,15 @@ export const PATCH = route(async req => {
   return { ok: true }
 })
 
-// Trocar a senha (pede a atual). Encerra as outras sessões abertas.
+// Trocar a senha (pede a atual). Encerra as outras sessões abertas. Também tira a marca de senha provisória.
 export const POST = route(async req => {
-  const u = await requireUser(req)
+  const u = await requireUser(req, null, true)
   const b = await body(req)
   validPassword(b.password)
   const [row] = await sql`select password_hash from ${t('users')} where id = ${u.id}`
   if (!checkPassword(String(b.current || ''), row.password_hash)) fail(400, 'Senha atual incorreta.')
-  const [nu] = await sql`update ${t('users')} set password_hash = ${hashPassword(b.password)}, session_version = session_version + 1
+  if (b.current === b.password) fail(400, 'A senha nova precisa ser diferente da atual.')
+  const [nu] = await sql`update ${t('users')} set password_hash = ${hashPassword(b.password)}, session_version = session_version + 1, must_change_password = false
     where id = ${u.id} returning id, session_version`
   return sessionCookie(NextResponse.json({ ok: true }), nu)
 })

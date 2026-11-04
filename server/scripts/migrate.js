@@ -3,6 +3,7 @@
 import postgres from 'postgres'
 import { readdirSync, readFileSync } from 'node:fs'
 
+if (!process.env.DATABASE_URL) { console.error('Preencha DATABASE_URL em server/.env.local (Supabase > Connect > Session pooler).'); process.exit(1) }
 const sql = postgres(process.env.DATABASE_URL, { prepare: false, max: 1, onnotice: () => {} })
 const dir = new URL('../db/', import.meta.url)
 
