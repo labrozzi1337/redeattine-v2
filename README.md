@@ -29,8 +29,10 @@ Variáveis já preenchidas em `server/.env.local` (fora do git): `SUPABASE_URL`,
    - `server/db/001_blog.sql`: schema `SYS_SITE_ATTINI` e tabelas;
    - `server/db/002_admin_inicial.sql`: administrador `elvis@labrozzi.com.br` (senha provisória);
    - `server/db/003_acesso_api.sql`: acesso do back-end ao schema. O público continua sem acesso.
+   - `server/db/004_posts_wordpress.sql`: os 40 posts que vieram do WordPress (texto, capa, imagens, SEO, categorias,
+     Histórias da rede e comentários). As imagens já estão no Storage.
 2. **Expor o schema**: *Project Settings > Data API > Exposed schemas*: adicione `SYS_SITE_ATTINI` e salve.
-3. **Posts**: dentro de `server/`, `npm run db:seed` (40 posts, comentários e imagens; pode repetir).
+3. **Alternativa à 004**: dentro de `server/`, `npm run db:seed` carrega os mesmos posts pela API (pode repetir).
 4. **Rodar**: na raiz, `npm run dev` sobe o site (http://localhost:5173, painel em /admin) e o back-end (porta 3001).
    Entre com `elvis@labrozzi.com.br` e a senha provisória: o painel obriga a criar uma senha nova.
 
