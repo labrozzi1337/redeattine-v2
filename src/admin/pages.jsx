@@ -419,7 +419,7 @@ export function Users({ me }) {
     e.preventDefault(); setBusy(true)
     try {
       const r = await call('/admin/users', { method: 'POST', body: inv })
-      setLinkInfo({ ...r, title: 'Convite criado', name: inv.name, email: inv.email, days: 'por 7 dias' })
+      toast(`${r.name} criado. Login: ${r.email}, senha provisória: ${r.password}`)
       setInv({ name: '', email: '', role: 'author' }); load()
     } catch (err) { toast(err.message, true) }
     setBusy(false)
@@ -443,14 +443,14 @@ export function Users({ me }) {
     <div className="page narrow">
       <Head title="Usuários" sub="Quem pode escrever e publicar no blog." />
       <form className="card invite" onSubmit={invite}>
-        <h2>Convidar pessoa</h2>
+        <h2>Novo usuário</h2>
         <div className="invite-row">
           <input required placeholder="Nome" value={inv.name} onChange={e => setInv({ ...inv, name: e.target.value })} />
           <input required type="email" placeholder="E-mail" value={inv.email} onChange={e => setInv({ ...inv, email: e.target.value })} />
           <select value={inv.role} onChange={e => setInv({ ...inv, role: e.target.value })}>{Object.entries(ROLES).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-          <button className="btn-p" disabled={busy}>{busy ? 'Criando…' : 'Convidar'}</button>
+          <button className="btn-p" disabled={busy}>{busy ? 'Criando…' : 'Criar'}</button>
         </div>
-        <small className="muted">{ROLE_HINT[inv.role]} A pessoa recebe um link para criar a senha.</small>
+        <small className="muted">{ROLE_HINT[inv.role]} Entra com a senha provisória <b>mudar1234#</b> e cria a dela no primeiro acesso.</small>
       </form>
       {rows && (
         <div className="card flush">
