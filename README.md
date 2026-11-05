@@ -40,13 +40,12 @@ Se algo faltar, o painel diz exatamente o quê (schema não exposto, migration f
 
 ## Colocar no ar (Vercel)
 
-1. **Back-end**: novo projeto na Vercel com *Root Directory* = `server`. Variáveis: as de `server/.env.local`
-   (sem `ALLOWED_ORIGINS`).
-   Nome sugerido: `attini-site-api`.
-2. **Front**: outro projeto na Vercel com a raiz do repositório. O `vercel.json` manda `/api` e `/sitemap.xml`
-   para `https://attini-site-api.vercel.app`. **Se o projeto do back-end tiver outro endereço, troque nesse arquivo.**
-   O front não precisa de variáveis.
-3. **Domínio**: `www.redeattini.com.br` no projeto do front (igual ao `SITE_URL` do back-end).
+1. **Um projeto só** (Vercel Services): o `vercel.json` define o serviço `app` (Vite, raiz) e o `server`
+   (Next.js, pasta `server`). `/api/*` e `/sitemap.xml` vão para o `server`, o resto para o `app`.
+   Em *Settings → Build and Deployment*, o *Framework Preset* do projeto deve ser **Services**.
+2. **Variáveis do projeto**: as de `server/.env.local`. Em `ALLOWED_ORIGINS`, coloque os endereços extras
+   pelos quais o painel será aberto (ex.: o `.vercel.app` do projeto), separados por vírgula.
+3. **Domínio**: `www.redeattini.com.br` no projeto (igual ao `SITE_URL`).
 4. **E-mail (opcional)**: com `SMTP_URL`, convites e "esqueci a senha" saem por e-mail. Sem ele, o painel mostra
    o link para o administrador copiar e mandar.
 5. **Google**: envie `https://www.redeattini.com.br/sitemap.xml` no Search Console.

@@ -1,8 +1,22 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "app": {
+      "root": ".",
+      "framework": "vite",
+      "rewrites": [
+        { "source": "/admin/(.*)", "destination": "/admin/index.html" },
+        { "source": "/((?!assets/|admin/).*)", "destination": "/index.html" }
+      ]
+    },
+    "server": {
+      "root": "server",
+      "framework": "nextjs"
+    }
+  },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://attini-site-api.vercel.app/api/:path*" },
-    { "source": "/sitemap.xml", "destination": "https://attini-site-api.vercel.app/api/sitemap" },
-    { "source": "/admin/(.*)", "destination": "/admin/index.html" },
-    { "source": "/((?!assets/|admin/).*)", "destination": "/index.html" }
+    { "source": "/api/(.*)", "destination": { "service": "server" } },
+    { "source": "/sitemap.xml", "destination": { "service": "server", "path": "/api/sitemap" } },
+    { "source": "/(.*)", "destination": { "service": "app" } }
   ]
 }
