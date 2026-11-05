@@ -21,7 +21,8 @@ export const STORES = 220
 // Faixa de impacto. Lojas e volume informados pela Attini (nov/2026); cidades vêm do mapa.
 // CONFIRMAR antes de publicar: nº de indústrias parceiras.
 export const STATS = [
-  { value: 780, prefix: 'R$ ', suffix: ' mi', label: 'em compras', note: 'nos últimos 12 meses, toda a rede', big: true },
+  // FORA DO AR até o Eliseu confirmar o volume de compras. Confirmado? Tire o // da linha abaixo.
+  // { value: 780, prefix: 'R$ ', suffix: ' mi', label: 'em compras', note: 'nos últimos 12 meses, toda a rede', big: true },
   { value: STORES, label: 'lojas associadas', note: 'com o nome e o jeito de cada dono' },
   { value: TOTAL_CITIES, label: 'cidades', note: 'a maioria no interior' },
   { value: N_STATES, suffix: ' + DF', label: 'estados e o Distrito Federal', note: 'de Minas ao Rio Grande do Norte' },

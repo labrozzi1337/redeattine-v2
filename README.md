@@ -127,7 +127,7 @@ Para gravar os leads em um sistema, defina no build `VITE_LEAD_ENDPOINT=https://
 ## Antes de publicar
 
 - O mapa oficial tem 197 lojas e nenhuma no DF; o site diz 220 lojas e inclui o DF. Atualizar `src/stores.json` ou o número.
-- Confirmar 220 lojas, R$ 780 mi (12 meses) e "80+ indústrias" em `src/data.js`.
+- Confirmar 220 lojas e "80+ indústrias" em `src/data.js`. R$ 780 mi (12 meses) está fora do ar até o Eliseu confirmar (linha comentada em `STATS`).
 - Confirmar que a 4ª edição do Conexão Attini já aconteceu (o texto diz "já está na 4ª edição").
 - Validar o escopo das cotas em `TRADE` com o comercial.
 - Revisar as categorias que a migração criou (Eventos, Rede Attini, Gestão da loja, Mercado).

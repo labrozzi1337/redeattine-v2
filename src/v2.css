@@ -206,13 +206,13 @@
 
 /* Impacto: 5 números, R$ e "mi" menores para caber */
 .impact { padding-bottom: clamp(80px, 14vh, 160px); }
-.impact .stats { padding-bottom: 0; grid-template-columns: repeat(5, 1fr); }
+.impact .stats { padding-bottom: 0; grid-auto-flow: column; grid-auto-columns: 1fr; }
 .stat-v { font-size: clamp(44px, 5vw, 84px); }
 .stat-v small { font-size: .42em; letter-spacing: -.02em; }
 @media (max-width: 1100px) {
-  .impact .stats { grid-template-columns: 1fr 1fr; }
+  .impact .stats { grid-auto-flow: row; grid-template-columns: 1fr 1fr; }
   .impact .stat { border-right: 0; padding-left: 0; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
-  .impact .stat:first-child { grid-column: 1 / -1; }
+  .impact .stat:first-child:nth-last-child(odd) { grid-column: 1 / -1; }
 }
 
 /* Cards do lojista na trilha: lista em vez de parágrafo */
