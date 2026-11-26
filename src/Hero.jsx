@@ -37,13 +37,12 @@ void main() {
   gl_FragColor = vec4(c, vAlpha * smoothstep(.5, .15, r) * mix(.8, 1., vHot));
 }`
 
-function sampleText(n, width) {
-  const c = document.createElement('canvas'), W = 1200, H = 300
+// Partículas tiradas do próprio logo (rede + o A da marca), não de uma fonte
+function sampleLogo(img, n, width) {
+  const c = document.createElement('canvas'), W = 1200, H = Math.round(W * 350 / 1980)
   c.width = W; c.height = H
   const g = c.getContext('2d')
-  g.font = '800 270px Sora, sans-serif'
-  g.textAlign = 'center'; g.textBaseline = 'middle'
-  g.fillText('ATTINI', W / 2, H / 2 + 10)
+  g.drawImage(img, 0, 0, W, H)
   const data = g.getImageData(0, 0, W, H).data, pts = []
   for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) if (data[(y * W + x) * 4 + 3] > 128) pts.push([x, y])
   const s = width / W
@@ -104,11 +103,13 @@ export default function Hero({ aud }) {
     geom.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3))
     let points
 
-    document.fonts.load('800 100px Sora').finally(() => {
+    const logo = new Image()
+    logo.src = '/logo-attini.svg'
+    logo.decode().then(() => {
       if (disposed) return
-      // Mobile: palavra e mapa ficam no terço de cima; o texto ocupa a metade de baixo
+      // Mobile: logo e mapa ficam no terço de cima; o texto ocupa a metade de baixo
       const textW = mobile ? visW * 0.9 : Math.min(visW * 0.86, visH * 1.35, 13)
-      const txt = sampleText(N, textW)
+      const txt = sampleLogo(logo, N, textW)
       const br = sampleBrazil(N)
       const sB = mobile ? Math.min((visH * 0.48) / 8.6, (visW * 0.9) / 8.5) : Math.min((visH * 0.82) / 8.6, (visW * 0.5) / 8.5)
       const offX = mobile ? 0 : visW * 0.2

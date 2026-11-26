@@ -8,7 +8,8 @@ if (/^\/admin$/i.test(location.pathname)) location.replace('/admin/' + location.
 
 // /blog, /blog/slug e os endereços antigos do WordPress (/2026/09/slug/) abrem o blog; o resto é a home.
 const isBlog = /^\/(blog(\/|$)|\d{4}\/\d{2}\/[^/]+)/.test(location.pathname)
-const Page = isBlog ? lazy(() => import('./blog/BlogPages')) : lazy(() => import('./App'))
+const isCadastro = /^\/cadastro\/?$/.test(location.pathname)
+const Page = isBlog ? lazy(() => import('./blog/BlogPages')) : isCadastro ? lazy(() => import('./Cadastro')) : lazy(() => import('./App'))
 if (!isBlog) history.scrollRestoration = 'manual'
 
 createRoot(document.getElementById('root')).render(<Suspense fallback={null}><Page /></Suspense>)

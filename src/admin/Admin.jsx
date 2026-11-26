@@ -11,7 +11,7 @@ const useRoute = () => {
   return r
 }
 
-const Brand = () => <div className="brand"><img src="/logo-attini.png" alt="Rede Attini" /><span>Blog</span></div>
+const Brand = () => <div className="brand"><img src="/logo-attini.svg" alt="Rede Attini" /><span>Blog</span></div>
 
 function Login({ onIn }) {
   const [mode, setMode] = useState('login')

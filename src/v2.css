@@ -271,9 +271,9 @@ a.story:hover .st-img img { transform: scale(1.05); }
 /* Histórias vindas do blog: resumo pode ser longo */
 .story .st-c > p { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* Rodapé: logo preto (vetor) no lugar das letras soltas */
+/* Rodapé: logo em partículas pretas (FooterLogo), mesma proporção do SVG */
 .ft-giant { padding-inline: var(--pad); }
-.ft-giant img { width: 100%; max-width: 1600px; height: auto; }
+.ft-giant canvas { display: block; width: 100%; max-width: 1600px; aspect-ratio: 1980 / 350; }
 
 /* Mapa: lojas do estado com filtro por cidade (desktop no painel; celular em tela cheia) */
 .map-count + .map-count { margin-top: 0; }

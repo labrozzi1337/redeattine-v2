@@ -64,7 +64,7 @@ export function Header({ aud, blog }) {
   ))
   return (
     <header className="hdr" ref={ref}>
-      <a href={blog ? '/' : '#topo'} className="hdr-logo" aria-label="Rede Attini, página inicial"><img src="/logo-attini.png" alt="Rede Attini" width="110" height="26" /></a>
+      <a href={blog ? '/' : '#topo'} className="hdr-logo" aria-label="Rede Attini, página inicial"><img src="/logo-attini.svg" alt="Rede Attini" width="110" height="19" /></a>
       <nav className="hdr-nav" aria-label="Seções"><Links /></nav>
       <div className="hdr-cta">
         <AudSwitch aud={aud} className="aud-sm" go />
@@ -79,12 +79,107 @@ export function Header({ aud, blog }) {
   )
 }
 
+// Logo do rodapé em partículas, como na hero, mas em Canvas 2D (o blog não carrega Three.js).
+// Cada ponto é uma "formiga" que só anda DENTRO das letras (máscara do logo): sobe do pé da letra
+// até o seu lugar, fica zanzando em volta dele e de vez em quando troca de lugar com uma vizinha.
+// Como cada uma tem um lugar fixo, a densidade não muda e o logo continua legível.
+function FooterLogo() {
+  const ref = useRef()
+  useEffect(() => {
+    const cv = ref.current, g = cv.getContext('2d')
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+    let ants = [], mask, raf, started = false, last = 0, W = 0, H = 0, gap = 3, mx = -1e4, my = -1e4
+    const img = new Image()
+    img.src = '/logo-attini.svg'
+    const inside = (x, y) => x >= 0 && y >= 0 && x < W && y < H && mask[(y | 0) * W + (x | 0)]
+
+    const step = (q, dt) => {
+      const dx = q.hx - q.x, dy = q.hy - q.y, d = Math.hypot(dx, dy)
+      if (q.climb && d < gap) q.climb = false
+      let turn = Math.atan2(dy, dx) - q.a
+      turn = Math.atan2(Math.sin(turn), Math.cos(turn))
+      // longe de casa puxa forte; perto, só zanza
+      q.a += turn * (q.climb ? 0.35 : d > gap * 2 ? 0.25 : 0.04) + (Math.random() - 0.5) * 0.8
+      let v = q.v * (q.climb ? 2.5 : 0.25) // sobe rápido; depois de formado, anda bem devagar
+      const ex = q.x - mx, ey = q.y - my, e = Math.hypot(ex, ey), R = W * 0.05
+      if (e < R) { q.a = Math.atan2(ey, ex) + (Math.random() - 0.5); v *= 3 } // foge do mouse
+      const nx = q.x + Math.cos(q.a) * v * dt, ny = q.y + Math.sin(q.a) * v * dt
+      if (inside(nx, ny)) { q.x = nx; q.y = ny } else q.a += Math.PI * (0.5 + Math.random()) // bateu na borda da letra
+    }
+    // troca de lugar com uma vizinha próxima (mesma letra, quase sempre): a obra nunca para
+    const swap = () => {
+      const i = (Math.random() * ants.length) | 0, j = i + 1 + ((Math.random() * 6) | 0), p = ants[i], q = ants[j]
+      if (!q || Math.hypot(p.hx - q.hx, p.hy - q.hy) > gap * 8) return
+      ;[p.hx, q.hx] = [q.hx, p.hx]; [p.hy, q.hy] = [q.hy, p.hy]
+    }
+
+    const build = () => {
+      const dpr = Math.min(devicePixelRatio, 2)
+      W = cv.clientWidth; H = cv.clientHeight
+      if (!W) return
+      cv.width = W * dpr; cv.height = H * dpr
+      g.setTransform(dpr, 0, 0, dpr, 0, 0)
+      const o = document.createElement('canvas')
+      o.width = W; o.height = H
+      const og = o.getContext('2d', { willReadFrequently: true })
+      og.drawImage(img, 0, 0, W, H)
+      const d = og.getImageData(0, 0, W, H).data
+      mask = new Uint8Array(W * H)
+      for (let i = 0; i < mask.length; i++) mask[i] = d[i * 4 + 3] > 128
+      gap = Math.max(2.5, W / 420)
+      const r = gap * 0.42
+      ants = []
+      for (let y = gap / 2; y < H; y += gap) for (let x = gap / 2; x < W; x += gap) {
+        const hx = x + (Math.random() - 0.5) * gap * 0.8, hy = y + (Math.random() - 0.5) * gap * 0.8
+        if (!inside(hx, hy)) continue
+        let by = hy // começa no pé da letra, na mesma coluna: a subida é toda por dentro
+        while (inside(hx, by + 1)) by++
+        const q = { hx, hy, x: hx, y: still ? hy : by - Math.random() * gap, a: -Math.PI / 2, v: (W / 1400) * (0.4 + Math.random() * 0.5), r: r * (0.7 + Math.random() * 0.6), climb: !still }
+        ants.push(q)
+      }
+      paint()
+    }
+
+    const paint = () => {
+      g.clearRect(0, 0, W, H)
+      g.beginPath()
+      for (const q of ants) { g.moveTo(q.x + q.r, q.y); g.arc(q.x, q.y, q.r, 0, 6.2832) }
+      g.fillStyle = '#111'
+      g.fill()
+    }
+    const frame = now => {
+      raf = requestAnimationFrame(frame)
+      const dt = Math.min(Math.max(now - last, 0) / 16.7, 3)
+      last = now
+      if (!started) return
+      for (const q of ants) step(q, dt)
+      for (let k = ants.length / 1600; k > 0; k--) swap() // cada formiga troca de lugar a cada ~25 s
+      paint()
+    }
+
+    const move = e => { const b = cv.getBoundingClientRect(); mx = e.clientX - b.left; my = e.clientY - b.top }
+    const ro = new ResizeObserver(build)
+    // A obra começa quando o rodapé está bem à vista; fora da tela, nada roda.
+    const io = new IntersectionObserver(([e]) => {
+      cancelAnimationFrame(raf)
+      if (!e.isIntersecting || still) return
+      if (e.intersectionRatio >= 0.4) started = true
+      last = performance.now()
+      raf = requestAnimationFrame(frame)
+    }, { threshold: [0, 0.4] })
+    img.decode().then(() => { ro.observe(cv); io.observe(cv) }).catch(() => {})
+    addEventListener('pointermove', move)
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); removeEventListener('pointermove', move) }
+  }, [])
+  return <canvas ref={ref} role="img" aria-label="Rede Attini" />
+}
+
 export function Footer({ blog }) {
   const at = h => (blog ? '/' + h : h)
   return (
     <>
       <footer className="ft">
-        <div className="ft-giant"><img src="/logo-attini-wordmark.png" alt="Attini" width="1556" height="350" /></div>
+        <div className="ft-giant"><FooterLogo /></div>
         <div className="wrap ft-row">
           <p>Construir é tornar real tudo aquilo que é sonho.</p>
           <nav className="ft-links" aria-label="Rodapé">

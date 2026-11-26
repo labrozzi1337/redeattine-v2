@@ -56,7 +56,7 @@ function Preloader({ onDone }) {
   }, [])
   return (
     <div className="pre" ref={ref} aria-hidden="true">
-      <img src="/logo-attini.png" alt="" />
+      <img src="/logo-attini.svg" alt="" />
       <div className="pre-num"><span ref={num}>0</span><small>lojas conectadas</small></div>
       <div className="pre-bar"><i /></div>
     </div>
@@ -258,7 +258,7 @@ export default function App() {
   return (
     <>
       {!ready && <Preloader onDone={() => setReady(true)} />}
-      <div className="curtain" aria-hidden="true"><img src="/logo-attini.png" alt="" /></div>
+      <div className="curtain" aria-hidden="true"><img src="/logo-attini.svg" alt="" /></div>
       <div className="cursor" aria-hidden="true"><span /></div>
       <div className="grain" aria-hidden="true" />
       <Header aud={aud} />
